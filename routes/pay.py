@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify, redirect
 from db import query_db
-from config import Config
 from uuid import uuid4
 from phonepe.sdk.pg.payments.v2.standard_checkout_client import StandardCheckoutClient
 from phonepe.sdk.pg.payments.v2.models.request.standard_checkout_pay_request import StandardCheckoutPayRequest
@@ -18,9 +17,9 @@ else:
     env = Env.SANDBOX  # Use SANDBOX for UAT/testing
 
 client = StandardCheckoutClient.get_instance(
-    client_id=Config.PHONEPE_CLIENT_ID, 
-    client_secret=Config.PHONEPE_CLIENT_SECRET, 
-    client_version=Config.PHONEPE_CLIENT_VERSION, 
+    client_id=os.getenv("PHONEPE_CLIENT_ID"), 
+    client_secret=os.getenv("PHONEPE_CLIENT_SECRET"), 
+    client_version=os.getenv("PHONEPE_CLIENT_VERSION"), 
     env=env, 
     should_publish_events=False
 )
@@ -44,7 +43,7 @@ def create_payment():
     
     amount = PLAN_PRICES[plan] * 100
     unique_order_id = str(uuid4()).replace('-', '')[:32]
-    ui_redirect_url = f"{Config.BASE_URL}/pay/status?orderId={unique_order_id}"
+    ui_redirect_url = f"{os.getenv('BASE_URL')}/pay/status?orderId={unique_order_id}"
     
     meta_info = MetaInfo(udf1=plan, udf2=f"amount_{amount/100}", udf3="payment")
     

@@ -1,9 +1,10 @@
 from flask import Blueprint, request, jsonify
 from google.oauth2 import id_token
 from google.auth.transport import requests
+import uuid
+import os
 from config import Config
 from db import query_db
-import uuid
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -20,7 +21,7 @@ def login():
         id_info = id_token.verify_oauth2_token(
             token, 
             requests.Request(), 
-            Config.GOOGLE_CLIENT_ID
+            os.getenv("GOOGLE_CLIENT_ID")
         )
 
         google_id = id_info['sub']

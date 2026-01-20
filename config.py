@@ -17,4 +17,7 @@ class Config:
     PHONEPE_CLIENT_VERSION = os.getenv("PHONEPE_CLIENT_VERSION", "1")
     PHONEPE_ENV = os.getenv("PHONEPE_ENV", "PRODUCTION")
     BASE_URL = os.getenv("BASE_URL", "http://localhost:3000")
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    SUPABASE_URL= os.getenv("SUPABASE_URL")
+    SUPABASE_ANON_KEY=os.getenv("SUPABASE_ANON_KEY")
 

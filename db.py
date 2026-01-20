@@ -1,9 +1,9 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from config import Config
+import os
 
 def get_db_connection():
-    conn = psycopg2.connect(Config.DATABASE_URL)
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     return conn
 
 def query_db(query, args=(), one=False):
