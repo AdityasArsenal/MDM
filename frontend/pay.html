@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask Payment Test</title>
+    <style>
+        body { 
+            font-family: sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            margin-top: 50px; 
+            padding: 20px;
+        }
+        .form-group { 
+            margin: 10px 0; 
+            display: flex; 
+            flex-direction: column; 
+            width: 300px;
+        }
+        label { 
+            margin-bottom: 5px; 
+            font-weight: bold;
+        }
+        input, select, button { 
+            padding: 10px; 
+            border: 1px solid #ccc; 
+            border-radius: 5px; 
+            font-size: 16px;
+        }
+        button { 
+            background: #007bff; 
+            color: white; 
+            cursor: pointer; 
+            margin-top: 10px;
+        }
+        button:hover { 
+            background: #0056b3; 
+        }
+        #response { 
+            margin-top: 20px; 
+            padding: 15px; 
+            background: #f0f0f0; 
+            border-radius: 5px; 
+            width: 80%; 
+            overflow-x: auto; 
+        }
+        .hidden { 
+            display: none; 
+        }
+        .section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 400px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Flask Payment Testing</h2>
+    
+    <!-- Create Payment Section -->
+    <div class="section">
+        <h3>Create Payment</h3>
+        <form id="payment-form">
+            <div class="form-group">
+                <label for="user_id">User ID:</label>
+                <input type="text" id="user_id" name="user_id" placeholder="Enter user ID" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="plan">Plan:</label>
+                <select id="plan" name="plan" required>
+                    <option value="">Select a plan</option>
+                    <option value="1_month">1 Month (₹100)</option>
+                    <option value="3_month">3 Months (₹250)</option>
+                </select>
+            </div>
+            
+            <button type="submit">Create Payment</button>
+        </form>
+    </div>
+
+    <!-- Check Payment Status Section -->
+    <div class="section">
+        <h3>Check Payment Status</h3>
+        <form id="status-form">
+            <div class="form-group">
+                <label for="order_id">Order ID:</label>
+                <input type="text" id="order_id" name="order_id" placeholder="Enter order ID" required>
+            </div>
+            
+            <button type="submit">Check Status</button>
+        </form>
+    </div>
+
+    <div id="response" class="hidden">
+        <h3>Backend Response:</h3>
+        <pre id="json-output"></pre>
+    </div>
+
+    <script>
+        // Handle payment creation
+        document.getElementById('payment-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {
+                user_id: formData.get('user_id'),
+                plan: formData.get('plan')
+            };
+
+            await makeRequest('/api/pay/create', 'POST', data);
+        });
+
+        // Handle status check
+        document.getElementById('status-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const orderId = formData.get('order_id');
+
+            await makeRequest(`/api/pay/status/${orderId}`, 'GET');
+        });
+
+        async function makeRequest(endpoint, method, data = null) {
+            // Show loading state
+            const outputDiv = document.getElementById('response');
+            const pre = document.getElementById('json-output');
+            outputDiv.classList.remove('hidden');
+            pre.innerText = "Sending to backend...";
+
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+
+                if (data && method !== 'GET') {
+                    options.body = JSON.stringify(data);
+                }
+
+                // Change the URL to match your Flask server address
+                const res = await fetch(`http://localhost:5000${endpoint}`, options);
+                const responseData = await res.json();
+                
+                // Format the response nicely
+                pre.innerText = JSON.stringify(responseData, null, 2);
+                
+                // If it's a payment creation response with a payment URL, show a link
+                if (responseData.payment_url) {
+                    const linkDiv = document.createElement('div');
+                    linkDiv.innerHTML = `<br><strong>Payment URL:</strong> <a href="${responseData.payment_url}" target="_blank">Open Payment Page</a>`;
+                    outputDiv.appendChild(linkDiv);
+                }
+                
+            } catch (error) {
+                pre.innerText = "Error connecting to backend: " + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

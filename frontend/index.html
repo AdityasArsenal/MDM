@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask Google Auth Test</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin-top: 50px; }
+        #response { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; width: 80%; overflow-x: auto; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <h2>Flask Auth Testing</h2>
+    
+    <div id="g_id_onload"
+      data-client_id="412246427625-53b717rel8fpo97lfbqhgpib0h44uvsg.apps.googleusercontent.com"
+      data-callback="handleCredentialResponse"
+      data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin" data-type="standard"></div>
+
+    <div id="response" class="hidden">
+        <h3>Backend Response:</h3>
+        <pre id="json-output"></pre>
+    </div>
+
+    <script>
+        async function handleCredentialResponse(response) {
+            
+            // Show loading state
+            const outputDiv = document.getElementById('response');
+            const pre = document.getElementById('json-output');
+            outputDiv.classList.remove('hidden');
+            pre.innerText = "Sending to backend...";
+
+            try {
+                // Change the URL to match your Flask server address
+                const res = await fetch('http://localhost:5000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        credential: response.credential
+                    })
+                });
+
+                const data = await res.json();
+                pre.innerText = JSON.stringify(data, null, 2);
+            } catch (error) {
+                pre.innerText = "Error connecting to backend: " + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
