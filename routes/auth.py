@@ -3,8 +3,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 import uuid
 import os
-from config import Config
-from db import query_db
+from db import get_user_by_google_id, insert_user, get_active_subscription
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -17,11 +16,19 @@ def login():
         if not token:
             return jsonify({'error': 'No token provided'}), 400
 
+        # Get and log the client ID for debugging
+        client_id = os.getenv("GOOGLE_CLIENT_ID")
+        # print(f"Using Google Client ID: {client_id}")
+        
+        if not client_id:
+            # print("ERROR: GOOGLE_CLIENT_ID environment variable not set")
+            return jsonify({'error': 'Server configuration error'}), 500
+
         # Verify Google token
         id_info = id_token.verify_oauth2_token(
             token, 
             requests.Request(), 
-            os.getenv("GOOGLE_CLIENT_ID")
+            client_id
         )
 
         google_id = id_info['sub']
@@ -29,22 +36,14 @@ def login():
         name = id_info.get('name')
 
         # Check if user exists
-        user = query_db('SELECT * FROM users WHERE google_id = %s', (google_id,), one=True)
+        user = get_user_by_google_id(google_id)
 
         if not user:
             # Create new user
-            user = query_db(
-                'INSERT INTO users (email, name, google_id) VALUES (%s, %s, %s) RETURNING *',
-                (email, name, google_id),
-                one=True
-            )
+            user = insert_user(email, name, google_id)
         
         # Check active subscription
-        sub = query_db("""
-            SELECT * FROM subscriptions 
-            WHERE user_id = %s AND status = 'active' AND end_date > now()
-            ORDER BY end_date DESC LIMIT 1
-        """, (user['id'],), one=True)
+        sub = get_active_subscription(user['id'])
 
         return jsonify({
             'user': {
@@ -52,7 +51,7 @@ def login():
                 'email': user['email'],
                 'name': user['name'],
                 'is_subscribed': bool(sub),
-                'subscription_end': sub['end_date'].isoformat() if sub else None
+                'subscription_end': sub['end_date'] if sub else None
             }
         })
 

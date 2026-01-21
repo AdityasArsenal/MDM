@@ -1,11 +1,13 @@
 from supabase import create_client
 import os
-from config import Config
 
-url = "https://grmlqlmvetxqitsxmsie.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdybWxxbG12ZXR4cWl0c3htc2llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2NzIwNTgsImV4cCI6MjA4MDI0ODA1OH0.rg69sMWiQXjnKaEw59_57Jz7ZZ8xYeQ7fvaYNvbGhTw"
+url = os.getenv("SUPABASE_URL")
+key = os.getenv("SUPABASE_KEY")
 
-print(url)
+if not url or not key:
+    raise ValueError("SUPABASE_URL and SUPABASE_KEY environment variables are required")
+
+print(f"Connecting to: {url}")
 
 supabase = create_client(url, key)
 
@@ -13,5 +15,7 @@ supabase = create_client(url, key)
 data = supabase.table("users").insert({
     "email": "ady@example.com",
     "name": "Ady",
-    "google_id": "12345"
+    "google_id": "123245"
 }).execute()
+
+print("Data inserted:", data)

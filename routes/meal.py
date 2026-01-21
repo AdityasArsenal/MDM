@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from db import query_db
+from db import get_meal_plans, insert_meal_plan
 from datetime import datetime
 
 meal_bp = Blueprint('meal', __name__)
@@ -10,22 +10,18 @@ def get_meals(year, month):
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
 
-    # Get all records for the month
-    query = """
-        SELECT * FROM meal_plans 
-        WHERE user_id = %s 
-        AND EXTRACT(YEAR FROM date) = %s 
-        AND EXTRACT(MONTH FROM date) = %s
-        ORDER BY date ASC
-    """
-    meals = query_db(query, (user_id, year, month))
+    meals = get_meal_plans(user_id, year, month)
     
     # Format dates for frontend
     if meals:
         for meal in meals:
             meal['id'] = str(meal['id'])
             meal['user_id'] = str(meal['user_id'])
-            meal['date'] = meal['date'].isoformat()
+            # Supabase returns dates as strings, so we might need to handle this
+            if isinstance(meal['date'], str):
+                meal['date'] = meal['date']
+            else:
+                meal['date'] = meal['date'].isoformat()
             
     return jsonify(meals or [])
 
@@ -40,24 +36,14 @@ def save_meals():
 
     try:
         for meal in meals:
-            query_db("""
-                INSERT INTO meal_plans (user_id, date, cnt_1to5, cnt_6to8, meal_type, has_pulses)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                ON CONFLICT (user_id, date) 
-                DO UPDATE SET 
-                    cnt_1to5 = EXCLUDED.cnt_1to5,
-                    cnt_6to8 = EXCLUDED.cnt_6to8,
-                    meal_type = EXCLUDED.meal_type,
-                    has_pulses = EXCLUDED.has_pulses,
-                    updated_at = now()
-            """, (
+            insert_meal_plan(
                 user_id, 
                 meal['date'], 
                 meal.get('cnt_1to5', 0), 
                 meal.get('cnt_6to8', 0), 
                 meal.get('meal_type'), 
                 meal.get('has_pulses', False)
-            ))
+            )
             
         return jsonify({'status': 'success'})
     except Exception as e:

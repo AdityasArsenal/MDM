@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from db import query_db
+from db import get_stock_records, insert_stock, get_meal_plans
 from datetime import datetime
 
 stock_bp = Blueprint('stock', __name__)
@@ -10,20 +10,17 @@ def get_stock(year, month):
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
 
-    query = """
-        SELECT * FROM stock 
-        WHERE user_id = %s 
-        AND EXTRACT(YEAR FROM date) = %s 
-        AND EXTRACT(MONTH FROM date) = %s
-        ORDER BY date ASC, grade ASC
-    """
-    records = query_db(query, (user_id, year, month))
+    records = get_stock_records(user_id, year, month)
     
     if records:
         for r in records:
             r['id'] = str(r['id'])
             r['user_id'] = str(r['user_id'])
-            r['date'] = r['date'].isoformat()
+            # Handle date formatting
+            if isinstance(r['date'], str):
+                r['date'] = r['date']
+            else:
+                r['date'] = r['date'].isoformat()
             # Convert decimals to float
             for key in ['rice_add', 'wheat_add', 'oil_add', 'pulse_add', 
                        'rice_open', 'wheat_open', 'oil_open', 'pulse_open']:
@@ -43,30 +40,13 @@ def save_stock():
 
     try:
         for r in records:
-            query_db("""
-                INSERT INTO stock (
-                    user_id, date, grade, 
-                    rice_add, wheat_add, oil_add, pulse_add,
-                    rice_open, wheat_open, oil_open, pulse_open
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (user_id, date, grade) 
-                DO UPDATE SET 
-                    rice_add = EXCLUDED.rice_add,
-                    wheat_add = EXCLUDED.wheat_add,
-                    oil_add = EXCLUDED.oil_add,
-                    pulse_add = EXCLUDED.pulse_add,
-                    rice_open = EXCLUDED.rice_open,
-                    wheat_open = EXCLUDED.wheat_open,
-                    oil_open = EXCLUDED.oil_open,
-                    pulse_open = EXCLUDED.pulse_open
-            """, (
+            insert_stock(
                 user_id, r['date'], r['grade'],
                 r.get('rice_add', 0), r.get('wheat_add', 0), 
                 r.get('oil_add', 0), r.get('pulse_add', 0),
                 r.get('rice_open'), r.get('wheat_open'), 
                 r.get('oil_open'), r.get('pulse_open')
-            ))
+            )
             
         return jsonify({'status': 'success'})
     except Exception as e:
@@ -80,35 +60,31 @@ def get_stock_with_calculations(year, month):
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
 
-    query = """
-        SELECT 
-            s.date,
-            s.grade,
-            s.rice_add, s.wheat_add, s.oil_add, s.pulse_add,
-            s.rice_open, s.wheat_open, s.oil_open, s.pulse_open,
-            mp.cnt_1to5, mp.cnt_6to8, mp.meal_type, mp.has_pulses
-        FROM stock s
-        LEFT JOIN meal_plans mp ON s.user_id = mp.user_id AND s.date = mp.date
-        WHERE s.user_id = %s 
-        AND EXTRACT(YEAR FROM s.date) = %s 
-        AND EXTRACT(MONTH FROM s.date) = %s
-        ORDER BY s.date ASC, s.grade ASC
-    """
-    records = query_db(query, (user_id, year, month))
+    # Get stock records and meal plans separately
+    stock_records = get_stock_records(user_id, year, month)
+    meal_plans = get_meal_plans(user_id, year, month)
     
-    if not records:
+    if not stock_records:
         return jsonify([])
+    
+    # Create a lookup for meal plans by date
+    meal_lookup = {}
+    for meal in meal_plans:
+        date_key = meal['date'] if isinstance(meal['date'], str) else meal['date'].isoformat()
+        meal_lookup[date_key] = meal
     
     # Process and calculate distributions
     result = []
-    for r in records:
+    for r in stock_records:
+        date_key = r['date'] if isinstance(r['date'], str) else r['date'].isoformat()
         grade = r['grade']
         is_1to5 = grade == '1to5'
         
-        # Get meal counts
-        cnt = r['cnt_1to5'] if is_1to5 else r['cnt_6to8']
-        meal_type = r['meal_type']
-        has_pulses = r['has_pulses']
+        # Get meal data for this date
+        meal_data = meal_lookup.get(date_key, {})
+        cnt = meal_data.get('cnt_1to5' if is_1to5 else 'cnt_6to8', 0)
+        meal_type = meal_data.get('meal_type')
+        has_pulses = meal_data.get('has_pulses', False)
         
         # Calculate distribution based on meal type and counts
         rice_used = 0
@@ -133,7 +109,7 @@ def get_stock_with_calculations(year, month):
                 pulse_used = cnt * pulse_rate
         
         result.append({
-            'date': r['date'].isoformat(),
+            'date': date_key,
             'grade': grade,
             'rice_add': float(r['rice_add']) if r['rice_add'] else 0,
             'wheat_add': float(r['wheat_add']) if r['wheat_add'] else 0,

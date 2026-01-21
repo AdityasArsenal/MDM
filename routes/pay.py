@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, redirect
-from db import query_db
+from db import insert_payment, get_payment_by_order_id, update_payment_status, insert_subscription
 from uuid import uuid4
 from phonepe.sdk.pg.payments.v2.standard_checkout_client import StandardCheckoutClient
 from phonepe.sdk.pg.payments.v2.models.request.standard_checkout_pay_request import StandardCheckoutPayRequest
@@ -53,17 +53,13 @@ def create_payment():
             amount=amount,
             redirect_url=ui_redirect_url,
             meta_info=meta_info,
-            mobile_number="9999999999" # Required by SDK sometimes, or use user phone
         )
         
         response = client.pay(standard_pay_request)
         checkout_page_url = response.redirect_url
         
         # Log transaction
-        query_db("""
-            INSERT INTO payments (user_id, order_id, plan, amount, status)
-            VALUES (%s, %s, %s, %s, 'pending')
-        """, (user_id, unique_order_id, plan, amount/100))
+        insert_payment(user_id, unique_order_id, plan, amount/100)
         
         return jsonify({
             "success": True,
@@ -82,18 +78,14 @@ def check_status(order_id):
         state = response.state
         
         # Get payment details from DB
-        payment = query_db("SELECT * FROM payments WHERE order_id = %s", (order_id,), one=True)
+        payment = get_payment_by_order_id(order_id)
         
         if not payment:
             return jsonify({"error": "Order not found"}), 404
 
         if payment['status'] != 'COMPLETED' and state == 'COMPLETED':
             # 1. Update Payment Status
-            query_db("""
-                UPDATE payments 
-                SET status = %s, pp_data = %s, updated_at = now()
-                WHERE order_id = %s
-            """, (state, json.dumps(str(response)), order_id))
+            update_payment_status(order_id, state, json.dumps(str(response)))
             
             # 2. Create Subscription
             plan = payment['plan']
@@ -101,18 +93,11 @@ def check_status(order_id):
             start_date = datetime.now()
             end_date = start_date + timedelta(days=30 * months)
             
-            query_db("""
-                INSERT INTO subscriptions (user_id, payment_id, plan_type, start_date, end_date, status)
-                VALUES (%s, %s, %s, %s, %s, 'active')
-            """, (payment['user_id'], payment['id'], plan, start_date, end_date))
+            insert_subscription(payment['user_id'], payment['id'], plan, start_date, end_date)
             
         elif payment['status'] != state:
              # Just update status if changed but not completed (e.g. FAILED)
-             query_db("""
-                UPDATE payments 
-                SET status = %s, pp_data = %s, updated_at = now()
-                WHERE order_id = %s
-            """, (state, json.dumps(str(response)), order_id))
+             update_payment_status(order_id, state, json.dumps(str(response)))
         
         return jsonify({
             "success": True,

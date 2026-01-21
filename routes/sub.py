@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from db import query_db
+from db import get_subscription_by_user_id, get_subscription_history, check_active_subscription, expire_old_subscriptions
 from datetime import datetime
 
 sub_bp = Blueprint('sub', __name__)
@@ -11,50 +11,55 @@ def get_active_subscription():
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
     
-    query = """
-        SELECT * FROM subscriptions 
-        WHERE user_id = %s 
-        AND status = 'active'
-        AND end_date > now()
-        ORDER BY created_at DESC
-        LIMIT 1
-    """
-    sub = query_db(query, (user_id,), one=True)
+    sub = get_subscription_by_user_id(user_id)
     
     if sub:
         sub['id'] = str(sub['id'])
         sub['user_id'] = str(sub['user_id'])
         sub['payment_id'] = str(sub['payment_id']) if sub.get('payment_id') else None
-        sub['start_date'] = sub['start_date'].isoformat()
-        sub['end_date'] = sub['end_date'].isoformat()
-        sub['created_at'] = sub['created_at'].isoformat()
+        # Handle date formatting - Supabase might return strings
+        if isinstance(sub['start_date'], str):
+            sub['start_date'] = sub['start_date']
+        else:
+            sub['start_date'] = sub['start_date'].isoformat()
+        if isinstance(sub['end_date'], str):
+            sub['end_date'] = sub['end_date']
+        else:
+            sub['end_date'] = sub['end_date'].isoformat()
+        if isinstance(sub['created_at'], str):
+            sub['created_at'] = sub['created_at']
+        else:
+            sub['created_at'] = sub['created_at'].isoformat()
         
     return jsonify(sub)
 
 @sub_bp.route('/history', methods=['GET'])
-def get_subscription_history():
+def get_subscription_history_route():
     """Get user's subscription history"""
     user_id = request.args.get('user_id')
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
     
-    query = """
-        SELECT s.*, p.order_id, p.amount, p.status as payment_status
-        FROM subscriptions s
-        LEFT JOIN payments p ON s.payment_id = p.id
-        WHERE s.user_id = %s
-        ORDER BY s.created_at DESC
-    """
-    subs = query_db(query, (user_id,))
+    subs = get_subscription_history(user_id)
     
     if subs:
         for sub in subs:
             sub['id'] = str(sub['id'])
             sub['user_id'] = str(sub['user_id'])
             sub['payment_id'] = str(sub['payment_id']) if sub.get('payment_id') else None
-            sub['start_date'] = sub['start_date'].isoformat()
-            sub['end_date'] = sub['end_date'].isoformat()
-            sub['created_at'] = sub['created_at'].isoformat()
+            # Handle date formatting
+            if isinstance(sub['start_date'], str):
+                sub['start_date'] = sub['start_date']
+            else:
+                sub['start_date'] = sub['start_date'].isoformat()
+            if isinstance(sub['end_date'], str):
+                sub['end_date'] = sub['end_date']
+            else:
+                sub['end_date'] = sub['end_date'].isoformat()
+            if isinstance(sub['created_at'], str):
+                sub['created_at'] = sub['created_at']
+            else:
+                sub['created_at'] = sub['created_at'].isoformat()
             
     return jsonify(subs or [])
 
@@ -65,31 +70,17 @@ def check_subscription():
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
     
-    query = """
-        SELECT EXISTS(
-            SELECT 1 FROM subscriptions 
-            WHERE user_id = %s 
-            AND status = 'active'
-            AND end_date > now()
-        ) as has_active
-    """
-    result = query_db(query, (user_id,), one=True)
+    has_active = check_active_subscription(user_id)
     
     return jsonify({
-        'has_active_subscription': result['has_active'] if result else False
+        'has_active_subscription': has_active
     })
 
 @sub_bp.route('/expire', methods=['POST'])
 def expire_subscriptions():
     """Expire old subscriptions (cron job)"""
     try:
-        query_db("""
-            UPDATE subscriptions 
-            SET status = 'expired'
-            WHERE status = 'active' 
-            AND end_date < now()
-        """)
-        
+        expire_old_subscriptions()
         return jsonify({'status': 'success'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
