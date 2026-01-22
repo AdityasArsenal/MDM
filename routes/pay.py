@@ -25,8 +25,8 @@ client = StandardCheckoutClient.get_instance(
 )
 
 PLAN_PRICES = {
-    '1_month': 100,
-    '3_month': 250
+    '1_month': 1,
+    '3_month': 2
 }
 
 @pay_bp.route('/create', methods=['POST'])
