@@ -73,12 +73,15 @@ def create_payment():
 
 @pay_bp.route('/status/<order_id>', methods=['GET'])
 def check_status(order_id):
+    print(f"Status check requested for order_id: {order_id}")
     try:
         response = client.get_order_status(order_id, details=False)
         state = response.state
+        print(f"PhonePe response state: {state}")
         
         # Get payment details from DB
         payment = get_payment_by_order_id(order_id)
+        print(f"Payment from DB: {payment}")
         
         if not payment:
             return jsonify({"error": "Order not found"}), 404
