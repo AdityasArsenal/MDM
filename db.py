@@ -189,39 +189,67 @@ def get_milk_records(user_id, year, month):
         print(f"Error getting milk records: {e}")
         raise e
 
-def insert_egg_record(user_id, date, payer, egg_m, egg_f, chikki_m, chikki_f, egg_price, banana_price):
-    """Insert or update egg record"""
+def insert_egg_record(
+    user_id,
+    date,
+    payer,
+    egg_m,
+    egg_f,
+    banana_m,
+    banana_f,
+    egg_price,
+    banana_price
+):
+    """Insert or update egg/banana record"""
     try:
-        result = supabase.table("egg").upsert({
-            "user_id": user_id,
-            "date": date,
-            "payer": payer,
-            "egg_m": egg_m,
-            "egg_f": egg_f,
-            "chikki_m": chikki_m,
-            "chikki_f": chikki_f,
-            "egg_price": egg_price,
-            "banana_price": banana_price
-        }).execute()
+        result = supabase.table("egg").upsert(
+            {
+                "user_id": user_id,
+                "date": date,
+                "payer": payer,
+                "egg_m": egg_m,
+                "egg_f": egg_f,
+                "banana_m": banana_m,
+                "banana_f": banana_f,
+                "egg_price": egg_price,
+                "banana_price": banana_price,
+            },
+            on_conflict="user_id,date"
+        ).execute()
+
         return result.data[0] if result.data else None
+
     except Exception as e:
         print(f"Error inserting egg record: {e}")
-        raise e
+        raise
+
 
 def get_egg_records(user_id, year, month):
     """Get egg records for user by year and month"""
     try:
         start_date = f"{year}-{month:02d}-01"
-        if month == 12:
-            end_date = f"{year + 1}-01-01"
-        else:
-            end_date = f"{year}-{month + 1:02d}-01"
-        
-        result = supabase.table("egg").select("*").eq("user_id", user_id).gte("date", start_date).lt("date", end_date).order("date").execute()
+        end_date = (
+            f"{year + 1}-01-01"
+            if month == 12
+            else f"{year}-{month + 1:02d}-01"
+        )
+
+        result = (
+            supabase.table("egg")
+            .select("*")
+            .eq("user_id", user_id)
+            .gte("date", start_date)
+            .lt("date", end_date)
+            .order("date")
+            .execute()
+        )
+
         return result.data
+
     except Exception as e:
         print(f"Error getting egg records: {e}")
-        raise e
+        raise
+
 
 def insert_payment(user_id, order_id, plan, amount, status="pending"):
     """Insert payment record"""

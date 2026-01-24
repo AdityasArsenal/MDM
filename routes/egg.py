@@ -25,26 +25,32 @@ def get_egg(year, month):
 
     return jsonify(records or [])
 
+
 @egg_bp.route('/save', methods=['POST'])
 def save_egg():
     data = request.json
     user_id = data.get('user_id')
     records = data.get('records', [])
-    
+
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
 
     try:
         for r in records:
             insert_egg_record(
-                user_id, r['date'], r.get('payer'),
-                r.get('egg_m', 0), r.get('egg_f', 0),
-                r.get('chikki_m', 0), r.get('chikki_f', 0),
-                r.get('egg_price', 6), r.get('banana_price', 6)
+                user_id=user_id,
+                date=r['date'],
+                payer=r.get('payer'),
+                egg_m=r.get('egg_m', 0),
+                egg_f=r.get('egg_f', 0),
+                banana_m=r.get('banana_m', 0),
+                banana_f=r.get('banana_f', 0),
+                egg_price=r.get('egg_price', 6),
+                banana_price=r.get('banana_price', 6),
             )
-            
+
         return jsonify({'status': 'success'})
+
     except Exception as e:
         print(f"Error saving egg: {e}")
         return jsonify({'error': str(e)}), 500
-

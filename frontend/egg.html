@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Egg API Test</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 40px auto; }
+    input, select, button { margin: 4px; }
+    textarea { width: 100%; height: 200px; }
+  </style>
+</head>
+<body>
+
+<h2>Save Egg Record</h2>
+
+<input id="user_id" placeholder="user_id (uuid)" size="40"><br>
+<input id="date" type="date"><br>
+
+<select id="payer">
+  <option value="">-- payer --</option>
+  <option value="APF">APF</option>
+  <option value="GOV">GOV</option>
+</select><br>
+
+<input id="egg_m" type="number" placeholder="egg_m">
+<input id="egg_f" type="number" placeholder="egg_f"><br>
+
+<input id="banana_m" type="number" placeholder="banana_m">
+<input id="banana_f" type="number" placeholder="banana_f"><br>
+
+<input id="egg_price" type="number" value="6">
+<input id="banana_price" type="number" value="6"><br>
+
+<button onclick="save()">Save</button>
+
+<hr>
+
+<h2>Get Monthly Records</h2>
+
+<input id="year" type="number" placeholder="year" value="2026">
+<input id="month" type="number" placeholder="month" value="1">
+<button onclick="load()">Load</button>
+
+<pre id="output"></pre>
+
+<script>
+const API = "https://f6bd2c05ef1b.ngrok-free.app/api/egg";
+const output = document.getElementById("output");
+
+function save() {
+  const payload = {
+    user_id: document.getElementById("user_id").value,
+    records: [{
+      date: document.getElementById("date").value,
+      payer: document.getElementById("payer").value,
+      egg_m: Number(egg_m.value),
+      egg_f: Number(egg_f.value),
+      banana_m: Number(banana_m.value),
+      banana_f: Number(banana_f.value),
+      egg_price: Number(egg_price.value),
+      banana_price: Number(banana_price.value)
+    }]
+  };
+
+  fetch(`${API}/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+  .then(async res => {
+    const data = await res.json();
+    output.textContent =
+      `HTTP ${res.status}\n\n` + JSON.stringify(data, null, 2);
+  })
+  .catch(err => {
+    output.textContent = "NETWORK ERROR\n\n" + err.toString();
+  });
+}
+
+function load() {
+  const userId = user_id.value;
+  const y = year.value;
+  const m = month.value;
+
+  fetch(`${API}/${y}/${m}?user_id=${userId}`)
+    .then(async res => {
+      const data = await res.json();
+      output.textContent =
+        `HTTP ${res.status}\n\n` + JSON.stringify(data, null, 2);
+    })
+    .catch(err => {
+      output.textContent = "NETWORK ERROR\n\n" + err.toString();
+    });
+}
+</script>
+
+
+</body>
+</html>
