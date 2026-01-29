@@ -55,75 +55,65 @@ def save_stock():
 
 @stock_bp.route('/calc/<int:year>/<int:month>', methods=['GET'])
 def get_stock_with_calculations(year, month):
-    """Get stock with distribution calculations from meal plans"""
     user_id = request.args.get('user_id')
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
 
-    # Get stock records and meal plans separately
     stock_records = get_stock_records(user_id, year, month)
     meal_plans = get_meal_plans(user_id, year, month)
-    
+
     if not stock_records:
         return jsonify([])
-    
-    # Create a lookup for meal plans by date
-    meal_lookup = {}
-    for meal in meal_plans:
-        date_key = meal['date'] if isinstance(meal['date'], str) else meal['date'].isoformat()
-        meal_lookup[date_key] = meal
-    
-    # Process and calculate distributions
+
+    meal_lookup = {
+        (m['date'] if isinstance(m['date'], str) else m['date'].isoformat()): m
+        for m in meal_plans
+    }
+
     result = []
+
     for r in stock_records:
         date_key = r['date'] if isinstance(r['date'], str) else r['date'].isoformat()
         grade = r['grade']
-        is_1to5 = grade == '1to5'
-        
-        # Get meal data for this date
-        meal_data = meal_lookup.get(date_key, {})
-        cnt = meal_data.get('cnt_1to5' if is_1to5 else 'cnt_6to8', 0)
-        meal_type = meal_data.get('meal_type')
-        has_pulses = meal_data.get('has_pulses', False)
-        
-        # Calculate distribution based on meal type and counts
-        rice_used = 0
-        wheat_used = 0
-        oil_used = 0
-        pulse_used = 0
-        
+        is_1to5 = grade == '1-5'
+
+        meal = meal_lookup.get(date_key, {})
+        cnt = meal.get('cnt_1to5' if is_1to5 else 'cnt_6to10', 0)
+        meal_type = meal.get('meal_type')
+        has_pulses = meal.get('has_pulses', False)
+
+        rice_used = wheat_used = oil_used = pulse_used = 0
+
         if cnt and meal_type:
-            # Rice/wheat rates
-            grain_rate = 0.1 if is_1to5 else 0.15
+            rice_rate = 0.1 if is_1to5 else 0.15
+            wheat_rate = 0.1 if is_1to5 else 0.15
             oil_rate = 0.005 if is_1to5 else 0.0075
             pulse_rate = 0.02 if is_1to5 else 0.03
-            
+
             if meal_type == 'rice':
-                rice_used = cnt * grain_rate
+                rice_used = cnt * rice_rate
             elif meal_type == 'wheat':
-                wheat_used = cnt * grain_rate
-            
+                wheat_used = cnt * wheat_rate
+
             oil_used = cnt * oil_rate
-            
             if has_pulses:
                 pulse_used = cnt * pulse_rate
-        
+
         result.append({
             'date': date_key,
             'grade': grade,
-            'rice_add': float(r['rice_add']) if r['rice_add'] else 0,
-            'wheat_add': float(r['wheat_add']) if r['wheat_add'] else 0,
-            'oil_add': float(r['oil_add']) if r['oil_add'] else 0,
-            'pulse_add': float(r['pulse_add']) if r['pulse_add'] else 0,
-            'rice_open': float(r['rice_open']) if r['rice_open'] else None,
-            'wheat_open': float(r['wheat_open']) if r['wheat_open'] else None,
-            'oil_open': float(r['oil_open']) if r['oil_open'] else None,
-            'pulse_open': float(r['pulse_open']) if r['pulse_open'] else None,
+            'rice_add': float(r['rice_add'] or 0),
+            'wheat_add': float(r['wheat_add'] or 0),
+            'oil_add': float(r['oil_add'] or 0),
+            'pulse_add': float(r['pulse_add'] or 0),
+            'rice_open': float(r['rice_open']) if r['rice_open'] is not None else None,
+            'wheat_open': float(r['wheat_open']) if r['wheat_open'] is not None else None,
+            'oil_open': float(r['oil_open']) if r['oil_open'] is not None else None,
+            'pulse_open': float(r['pulse_open']) if r['pulse_open'] is not None else None,
             'rice_used': round(rice_used, 3),
             'wheat_used': round(wheat_used, 3),
             'oil_used': round(oil_used, 3),
             'pulse_used': round(pulse_used, 3),
         })
-    
-    return jsonify(result)
 
+    return jsonify(result)

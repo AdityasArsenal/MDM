@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Meal Plans Test</title>
+<style>
+  body { font-family: sans-serif; max-width: 800px; margin: 20px auto; }
+  input, select, button { margin: 5px; padding: 5px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+</style>
+</head>
+<body>
+<h2>Meal Plans Test</h2>
+
+<label>User ID: <input type="text" id="user_id" value=""></label><br>
+<label>Year: <input type="number" id="year" value="2026"></label>
+<label>Month: <input type="number" id="month" value="1" min="1" max="12"></label>
+<button onclick="getMeals()">Fetch Meals</button>
+
+<table id="mealTable">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Meal Type</th>
+      <th>Pulse?</th>
+      <th>1–5 Children</th>
+      <th>6–10 Children</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<h3>Add / Update Meal</h3>
+<label>Date: <input type="date" id="meal_date"></label><br>
+<label>Meal Type:
+  <select id="meal_type">
+    <option value="rice">Rice</option>
+    <option value="wheat">Wheat</option>
+  </select>
+</label><br>
+<label>Pulse? <input type="checkbox" id="has_pulses"></label><br>
+<label>1–5 Children: <input type="number" id="cnt_1to5" value="0"></label><br>
+<label>6–10 Children: <input type="number" id="cnt_6to10" value="0"></label><br>
+<button onclick="saveMeal()">Save Meal</button>
+
+<script>
+const baseUrl = "https://cfc1008d0f72.ngrok-free.app/api/meal";
+
+async function getMeals() {
+  const user_id = document.getElementById('user_id').value;
+  const year = document.getElementById('year').value;
+  const month = document.getElementById('month').value;
+
+  if (!user_id) { alert("Enter user_id"); return; }
+
+  const res = await fetch(`${baseUrl}/meal/${year}/${month}?user_id=${user_id}`);
+  const data = await res.json();
+
+  const tbody = document.querySelector('#mealTable tbody');
+  tbody.innerHTML = '';
+  data.forEach(m => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${m.date}</td>
+      <td>${m.meal_type}</td>
+      <td>${m.has_pulses ? 'Yes' : 'No'}</td>
+      <td>${m.cnt_1to5}</td>
+      <td>${m.cnt_6to10}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function saveMeal() {
+  const user_id = document.getElementById('user_id').value;
+  if (!user_id) { alert("Enter user_id"); return; }
+
+  const meal = {
+    date: document.getElementById('meal_date').value,
+    meal_type: document.getElementById('meal_type').value,
+    has_pulses: document.getElementById('has_pulses').checked,
+    total_children_3a: parseInt(document.getElementById('cnt_1to5').value),
+    total_children_4a: parseInt(document.getElementById('cnt_6to10').value)
+  };
+
+  const res = await fetch(`${baseUrl}/meal/save`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id, meals: [meal] })
+  });
+
+  const result = await res.json();
+  alert(JSON.stringify(result));
+  getMeals(); // refresh table
+}
+</script>
+</body>
+</html>

@@ -2,98 +2,226 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Egg API Test</title>
+  <title>Egg & Banana Records</title>
   <style>
-    body { font-family: sans-serif; max-width: 800px; margin: 40px auto; }
-    input, select, button { margin: 4px; }
-    textarea { width: 100%; height: 200px; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 16px;
+      line-height: 1.6;
+    }
+    h1, h2 { margin: 2em 0 1em; }
+    input, select, button {
+      padding: 8px 12px;
+      margin: 6px 8px 6px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+    button {
+      background: #0066cc;
+      color: white;
+      border: none;
+      cursor: pointer;
+      padding: 9px 16px;
+    }
+    button:hover { background: #0055aa; }
+    #output-area {
+      margin-top: 1.5rem;
+      padding: 1.2rem;
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      min-height: 140px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: right;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background: #f0f4f8;
+      text-align: center;
+      font-weight: 600;
+    }
+    td.date { text-align: left; font-weight: 500; }
+    td.payer { text-align: center; }
+    .price { color: #006600; font-weight: 500; }
+    .loading { color: #555; font-style: italic; padding: 1.5rem; }
+    .error-message {
+      color: #c00;
+      background: #ffebee;
+      padding: 1rem;
+      border-radius: 6px;
+      white-space: pre-wrap;
+    }
+    .empty-message {
+      color: #777;
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
 
-<h2>Save Egg Record</h2>
+<h1>Egg & Banana Records</h1>
 
-<input id="user_id" placeholder="user_id (uuid)" size="40"><br>
-<input id="date" type="date"><br>
+<h2>Save Record</h2>
 
+<input id="user_id" placeholder="user_id (uuid)" size="38" value="9d16f34f-9cf4-47ee-9cf4-3717f42f1e23">
+<br>
+
+<input id="date" type="date">
 <select id="payer">
   <option value="">-- payer --</option>
   <option value="APF">APF</option>
   <option value="GOV">GOV</option>
-</select><br>
+</select>
+<br>
 
-<input id="egg_m" type="number" placeholder="egg_m">
-<input id="egg_f" type="number" placeholder="egg_f"><br>
+<input id="egg_m" type="number" placeholder="egg_m" min="0">
+<input id="egg_f" type="number" placeholder="egg_f" min="0">
+<br>
 
-<input id="banana_m" type="number" placeholder="banana_m">
-<input id="banana_f" type="number" placeholder="banana_f"><br>
+<input id="banana_m" type="number" placeholder="banana_m" min="0">
+<input id="banana_f" type="number" placeholder="banana_f" min="0">
+<br>
 
-<input id="egg_price" type="number" value="6">
-<input id="banana_price" type="number" value="6"><br>
+<input id="egg_price"    type="number" step="0.1" value="6" placeholder="egg price">
+<input id="banana_price" type="number" step="0.1" value="6" placeholder="banana price">
+<br>
 
-<button onclick="save()">Save</button>
+<button onclick="saveRecord()">Save Record</button>
 
 <hr>
 
-<h2>Get Monthly Records</h2>
+<h2>View Monthly Records</h2>
 
-<input id="year" type="number" placeholder="year" value="2026">
-<input id="month" type="number" placeholder="month" value="1">
-<button onclick="load()">Load</button>
+Year:  <input id="year"  type="number" value="2222" min="2000" max="2300" style="width:90px;">
+Month: <input id="month" type="number" value="2" min="1" max="12" style="width:70px;">
+<button onclick="loadRecords()">Load Records</button>
 
-<pre id="output"></pre>
+<div id="output-area"></div>
 
 <script>
-const API = "https://f6bd2c05ef1b.ngrok-free.app/api/egg";
-const output = document.getElementById("output");
+const API_BASE = "https://cfc1008d0f72.ngrok-free.app/api/egg";   // ← your current ngrok URL
+const output = document.getElementById("output-area");
 
-function save() {
+function saveRecord() {
+  const user_id = document.getElementById("user_id").value.trim();
+  if (!user_id) return showError("User ID is required");
+
   const payload = {
-    user_id: document.getElementById("user_id").value,
+    user_id,
     records: [{
-      date: document.getElementById("date").value,
-      payer: document.getElementById("payer").value,
-      egg_m: Number(egg_m.value),
-      egg_f: Number(egg_f.value),
-      banana_m: Number(banana_m.value),
-      banana_f: Number(banana_f.value),
-      egg_price: Number(egg_price.value),
-      banana_price: Number(banana_price.value)
+      date:        document.getElementById("date").value,
+      payer:       document.getElementById("payer").value,
+      egg_m:       Number(document.getElementById("egg_m").value) || 0,
+      egg_f:       Number(document.getElementById("egg_f").value) || 0,
+      banana_m:    Number(document.getElementById("banana_m").value) || 0,
+      banana_f:    Number(document.getElementById("banana_f").value) || 0,
+      egg_price:   Number(document.getElementById("egg_price").value) || 6,
+      banana_price: Number(document.getElementById("banana_price").value) || 6,
     }]
   };
 
-  fetch(`${API}/save`, {
+  output.innerHTML = `<div class="loading">Saving...</div>`;
+
+  fetch(`${API_BASE}/save`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   })
   .then(async res => {
-    const data = await res.json();
-    output.textContent =
-      `HTTP ${res.status}\n\n` + JSON.stringify(data, null, 2);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    output.innerHTML = `
+      <strong>Saved successfully</strong> (Status: ${res.status})<br><br>
+      <pre>${JSON.stringify(data, null, 2)}</pre>
+    `;
   })
-  .catch(err => {
-    output.textContent = "NETWORK ERROR\n\n" + err.toString();
-  });
+  .catch(err => showError(err.message));
 }
 
-function load() {
-  const userId = user_id.value;
-  const y = year.value;
-  const m = month.value;
+function loadRecords() {
+  const user_id = document.getElementById("user_id").value.trim();
+  const year  = document.getElementById("year").value;
+  const month = document.getElementById("month").value;
 
-  fetch(`${API}/${y}/${m}?user_id=${userId}`)
+  if (!user_id) return showError("Please enter User ID");
+  if (!year || !month) return showError("Year and month are required");
+
+  const url = `${API_BASE}/${year}/${month}?user_id=${encodeURIComponent(user_id)}`;
+
+  output.innerHTML = `<div class="loading">Loading records for ${year}-${month}...</div>`;
+
+  fetch(url)
     .then(async res => {
-      const data = await res.json();
-      output.textContent =
-        `HTTP ${res.status}\n\n` + JSON.stringify(data, null, 2);
+      const text = await res.text();
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}\n\n${text.slice(0, 300)}...`);
+      }
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error("Received invalid JSON:\n\n" + text.slice(0, 400));
+      }
+
+      if (!Array.isArray(data) || data.length === 0) {
+        output.innerHTML = `<div class="empty-message">No records found for ${year}-${month}</div>`;
+        return;
+      }
+
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Payer</th>
+              <th>Egg M</th>
+              <th>Egg F</th>
+              <th>Banana M</th>
+              <th>Banana F</th>
+              <th>Egg Price</th>
+              <th>Banana Price</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      data.forEach(r => {
+        html += `
+          <tr>
+            <td class="date">${r.date || '—'}</td>
+            <td class="payer">${r.payer || '—'}</td>
+            <td>${r.egg_m ?? '—'}</td>
+            <td>${r.egg_f ?? '—'}</td>
+            <td>${r.banana_m ?? '—'}</td>
+            <td>${r.banana_f ?? '—'}</td>
+            <td class="price">${Number(r.egg_price ?? 0).toFixed(2)}</td>
+            <td class="price">${Number(r.banana_price ?? 0).toFixed(2)}</td>
+          </tr>
+        `;
+      });
+
+      html += `</tbody></table>`;
+      output.innerHTML = html;
     })
-    .catch(err => {
-      output.textContent = "NETWORK ERROR\n\n" + err.toString();
-    });
+    .catch(err => showError(err.message));
+}
+
+function showError(msg) {
+  output.innerHTML = `<div class="error-message">Error: ${msg}</div>`;
 }
 </script>
-
 
 </body>
 </html>

@@ -5,7 +5,7 @@ egg_bp = Blueprint('egg', __name__)
 
 @egg_bp.route('/<int:year>/<int:month>', methods=['GET'])
 def get_egg(year, month):
-    user_id = request.args.get('user_id')
+    user_id = "9d16f34f-9cf4-47ee-9cf4-3717f42f1e23"
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
 
@@ -17,14 +17,13 @@ def get_egg(year, month):
             r['user_id'] = str(r['user_id'])
             # Handle date formatting
             if isinstance(r['date'], str):
-                r['date'] = r['date']
+                r['date'] = r['date'] 
             else:
                 r['date'] = r['date'].isoformat()
             r['egg_price'] = float(r['egg_price']) if r['egg_price'] else 6.0
             r['banana_price'] = float(r['banana_price']) if r['banana_price'] else 6.0
 
-    return jsonify(records or [])
-
+    return records or []
 
 @egg_bp.route('/save', methods=['POST'])
 def save_egg():

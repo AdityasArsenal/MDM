@@ -13,6 +13,218 @@ if not url or not key:
 
 supabase = create_client(url, key)
 
+
+def insert_egg_record(
+    user_id,
+    date,
+    payer,
+    egg_m,
+    egg_f,
+    banana_m,
+    banana_f,
+    egg_price,
+    banana_price
+):
+    """Insert or update egg/banana record"""
+    try:
+        result = supabase.table("egg").upsert(
+            {
+                "user_id": user_id,
+                "date": date,
+                "payer": payer,
+                "egg_m": egg_m,
+                "egg_f": egg_f,
+                "banana_m": banana_m,
+                "banana_f": banana_f,
+                "egg_price": egg_price,
+                "banana_price": banana_price,
+            },
+            on_conflict="user_id,date"
+        ).execute()
+
+        return result.data[0] if result.data else None
+
+    except Exception as e:
+        print(f"Error inserting egg record: {e}")
+        raise
+
+
+def get_egg_records(user_id, year, month):
+    """Get egg records for user by year and month"""
+    try:
+        start_date = f"{year}-{month:02d}-01"
+        end_date = (
+            f"{year + 1}-01-01"
+            if month == 12
+            else f"{year}-{month + 1:02d}-01"
+        )
+
+        result = (
+            supabase.table("egg")
+            .select("*")
+            .eq("user_id", user_id)
+            .gte("date", start_date)
+            .lt("date", end_date)
+            .order("date")
+            .execute()
+        )
+
+        return result.data
+
+    except Exception as e:
+        print(f"Error getting egg records: {e}")
+        raise
+
+def insert_meal_plan(
+    user_id,
+    date,
+    cnt_1to5,
+    cnt_6to10,
+    meal_type,
+    has_pulses
+):
+    """Insert or update meal plan"""
+    try:
+        result = (
+            supabase
+            .table("meal_plans")
+            .upsert(
+                {
+                    "user_id": user_id,
+                    "date": date,
+                    "cnt_1to5": cnt_1to5,
+                    "cnt_6to10": cnt_6to10,
+                    "meal_type": meal_type,
+                    "has_pulses": has_pulses,
+                },
+                on_conflict="user_id,date"
+            )
+            .execute()
+        )
+
+        return result.data[0] if result.data else None
+
+    except Exception as e:
+        print(f"Error inserting meal plan: {e}")
+        raise
+
+
+def get_meal_plans(user_id, year, month):
+    """Get meal plans for user by year and month"""
+    try:
+        start_date = f"{year}-{month:02d}-01"
+        end_date = (
+            f"{year + 1}-01-01"
+            if month == 12
+            else f"{year}-{month + 1:02d}-01"
+        )
+
+        result = (
+            supabase
+            .table("meal_plans")
+            .select("*")
+            .eq("user_id", user_id)
+            .gte("date", start_date)
+            .lt("date", end_date)
+            .order("date")
+            .execute()
+        )
+
+        return result.data
+
+    except Exception as e:
+        print(f"Error getting meal plans: {e}")
+        raise
+
+def insert_milk_record(user_id, date, children, milk_open, ragi_open, milk_rcpt, ragi_rcpt, dist_type):
+    """Insert or update milk record"""
+    try:
+        result = supabase.table("milk").upsert({
+            "user_id": user_id,
+            "date": date,
+            "children": children,
+            "milk_open": milk_open,
+            "ragi_open": ragi_open,
+            "milk_rcpt": milk_rcpt,
+            "ragi_rcpt": ragi_rcpt,
+            "dist_type": dist_type
+        }).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        print(f"Error inserting milk record: {e}")
+        raise e
+
+def get_milk_records(user_id, year, month):
+    """Get milk records for user by year and month"""
+    try:
+        start_date = f"{year}-{month:02d}-01"
+        if month == 12:
+            end_date = f"{year + 1}-01-01"
+        else:
+            end_date = f"{year}-{month + 1:02d}-01"
+        
+        result = supabase.table("milk").select("*").eq("user_id", user_id).gte("date", start_date).lt("date", end_date).order("date").execute()
+        return result.data
+    except Exception as e:
+        print(f"Error getting milk records: {e}")
+        raise e
+
+def insert_stock(user_id, date, grade, rice_add, wheat_add, oil_add, pulse_add, rice_open=None, wheat_open=None, oil_open=None, pulse_open=None):
+    """Insert or update stock record"""
+    try:
+        data = {
+            "user_id": user_id,
+            "date": date,
+            "grade": grade,
+            "rice_add": rice_add,
+            "wheat_add": wheat_add,
+            "oil_add": oil_add,
+            "pulse_add": pulse_add
+        }
+
+        # Only include opening stock if provided
+        if rice_open is not None:
+            data["rice_open"] = rice_open
+        if wheat_open is not None:
+            data["wheat_open"] = wheat_open
+        if oil_open is not None:
+            data["oil_open"] = oil_open
+        if pulse_open is not None:
+            data["pulse_open"] = pulse_open
+
+        result = supabase.table("stock").upsert(data, on_conflict=["user_id", "date", "grade"]).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        print(f"Error inserting stock: {e}")
+        raise e
+
+
+def get_stock_records(user_id, year, month):
+    """Get stock records for user by year and month"""
+    try:
+        start_date = f"{year}-{month:02d}-01"
+        if month == 12:
+            end_date = f"{year + 1}-01-01"
+        else:
+            end_date = f"{year}-{month + 1:02d}-01"
+
+        result = (
+            supabase.table("stock")
+            .select("*")
+            .eq("user_id", user_id)
+            .gte("date", start_date)
+            .lt("date", end_date)
+            .order("date")
+            .order("grade")
+            .execute()
+        )
+        return result.data
+    except Exception as e:
+        print(f"Error getting stock records: {e}")
+        raise e
+
+
+
 def query_db(query, args=(), one=False):
     """
     Execute raw SQL queries using Supabase
@@ -79,176 +291,6 @@ def get_active_subscription(user_id):
     except Exception as e:
         print(f"Error getting subscription: {e}")
         raise e
-
-def insert_meal_plan(user_id, date, cnt_1to5, cnt_6to8, meal_type, has_pulses):
-    """Insert or update meal plan"""
-    try:
-        result = supabase.table("meal_plans").upsert({
-            "user_id": user_id,
-            "date": date,
-            "cnt_1to5": cnt_1to5,
-            "cnt_6to8": cnt_6to8,
-            "meal_type": meal_type,
-            "has_pulses": has_pulses
-        }).execute()
-        return result.data[0] if result.data else None
-    except Exception as e:
-        print(f"Error inserting meal plan: {e}")
-        raise e
-
-def get_meal_plans(user_id, year, month):
-    """Get meal plans for user by year and month"""
-    try:
-        # Using Supabase's date filtering
-        start_date = f"{year}-{month:02d}-01"
-        if month == 12:
-            end_date = f"{year + 1}-01-01"
-        else:
-            end_date = f"{year}-{month + 1:02d}-01"
-        
-        result = supabase.table("meal_plans").select("*").eq("user_id", user_id).gte("date", start_date).lt("date", end_date).order("date").execute()
-        return result.data
-    except Exception as e:
-        print(f"Error getting meal plans: {e}")
-        raise e
-
-def insert_stock(user_id, date, grade, rice_add, wheat_add, oil_add, pulse_add, rice_open=None, wheat_open=None, oil_open=None, pulse_open=None):
-    """Insert or update stock record"""
-    try:
-        data = {
-            "user_id": user_id,
-            "date": date,
-            "grade": grade,
-            "rice_add": rice_add,
-            "wheat_add": wheat_add,
-            "oil_add": oil_add,
-            "pulse_add": pulse_add
-        }
-        
-        # Only include opening stock if provided
-        if rice_open is not None:
-            data["rice_open"] = rice_open
-        if wheat_open is not None:
-            data["wheat_open"] = wheat_open
-        if oil_open is not None:
-            data["oil_open"] = oil_open
-        if pulse_open is not None:
-            data["pulse_open"] = pulse_open
-            
-        result = supabase.table("stock").upsert(data).execute()
-        return result.data[0] if result.data else None
-    except Exception as e:
-        print(f"Error inserting stock: {e}")
-        raise e
-
-def get_stock_records(user_id, year, month):
-    """Get stock records for user by year and month"""
-    try:
-        start_date = f"{year}-{month:02d}-01"
-        if month == 12:
-            end_date = f"{year + 1}-01-01"
-        else:
-            end_date = f"{year}-{month + 1:02d}-01"
-        
-        result = supabase.table("stock").select("*").eq("user_id", user_id).gte("date", start_date).lt("date", end_date).order("date").order("grade").execute()
-        return result.data
-    except Exception as e:
-        print(f"Error getting stock records: {e}")
-        raise e
-
-def insert_milk_record(user_id, date, children, milk_open, ragi_open, milk_rcpt, ragi_rcpt, dist_type):
-    """Insert or update milk record"""
-    try:
-        result = supabase.table("milk").upsert({
-            "user_id": user_id,
-            "date": date,
-            "children": children,
-            "milk_open": milk_open,
-            "ragi_open": ragi_open,
-            "milk_rcpt": milk_rcpt,
-            "ragi_rcpt": ragi_rcpt,
-            "dist_type": dist_type
-        }).execute()
-        return result.data[0] if result.data else None
-    except Exception as e:
-        print(f"Error inserting milk record: {e}")
-        raise e
-
-def get_milk_records(user_id, year, month):
-    """Get milk records for user by year and month"""
-    try:
-        start_date = f"{year}-{month:02d}-01"
-        if month == 12:
-            end_date = f"{year + 1}-01-01"
-        else:
-            end_date = f"{year}-{month + 1:02d}-01"
-        
-        result = supabase.table("milk").select("*").eq("user_id", user_id).gte("date", start_date).lt("date", end_date).order("date").execute()
-        return result.data
-    except Exception as e:
-        print(f"Error getting milk records: {e}")
-        raise e
-
-def insert_egg_record(
-    user_id,
-    date,
-    payer,
-    egg_m,
-    egg_f,
-    banana_m,
-    banana_f,
-    egg_price,
-    banana_price
-):
-    """Insert or update egg/banana record"""
-    try:
-        result = supabase.table("egg").upsert(
-            {
-                "user_id": user_id,
-                "date": date,
-                "payer": payer,
-                "egg_m": egg_m,
-                "egg_f": egg_f,
-                "banana_m": banana_m,
-                "banana_f": banana_f,
-                "egg_price": egg_price,
-                "banana_price": banana_price,
-            },
-            on_conflict="user_id,date"
-        ).execute()
-
-        return result.data[0] if result.data else None
-
-    except Exception as e:
-        print(f"Error inserting egg record: {e}")
-        raise
-
-
-def get_egg_records(user_id, year, month):
-    """Get egg records for user by year and month"""
-    try:
-        start_date = f"{year}-{month:02d}-01"
-        end_date = (
-            f"{year + 1}-01-01"
-            if month == 12
-            else f"{year}-{month + 1:02d}-01"
-        )
-
-        result = (
-            supabase.table("egg")
-            .select("*")
-            .eq("user_id", user_id)
-            .gte("date", start_date)
-            .lt("date", end_date)
-            .order("date")
-            .execute()
-        )
-
-        return result.data
-
-    except Exception as e:
-        print(f"Error getting egg records: {e}")
-        raise
 
 
 def insert_payment(user_id, order_id, plan, amount, status="pending"):
