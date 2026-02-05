@@ -381,4 +381,3 @@ def expire_old_subscriptions():
     except Exception as e:
         print(f"Error expiring subscriptions: {e}")
         raise e
-
