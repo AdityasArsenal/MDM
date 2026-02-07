@@ -5,6 +5,11 @@ import uuid
 import os
 from db import get_user_by_google_id, insert_user, get_active_subscription
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['POST'])

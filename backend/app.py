@@ -13,7 +13,7 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 # Enable CORS for frontend
-CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Register Blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
