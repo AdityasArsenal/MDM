@@ -13,6 +13,11 @@ declare global {
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
+if (!BACKEND_URL) {
+  throw new Error("NEXT_PUBLIC_BACKEND_URL is undefined. App cannot start.");
+}
+
+
 export default function Home() {
   const router = useRouter();
   const [response, setResponse] = useState<string>('');
@@ -41,6 +46,8 @@ export default function Home() {
         
         if (!data.user.is_subscribed) {
           router.push('/payment');
+        } else {
+          router.push('/milk');
         }
       }
     } catch (error: any) {

@@ -37,6 +37,17 @@ def save_milk():
 
     try:
         for r in records:
+            # Skip rows where all numeric fields are zero and dist_type is default
+            if (
+                (r.get('children', 0) == 0) and
+                (r.get('milk_open', 0) == 0) and
+                (r.get('ragi_open', 0) == 0) and
+                (r.get('milk_rcpt', 0) == 0) and
+                (r.get('ragi_rcpt', 0) == 0) and
+                (r.get('dist_type', 'milk & ragi') == 'milk & ragi')
+            ):
+                continue  # skip inserting this row
+
             insert_milk_record(
                 user_id, r['date'], r.get('children', 0),
                 r.get('milk_open', 0), r.get('ragi_open', 0),
@@ -48,4 +59,5 @@ def save_milk():
     except Exception as e:
         print(f"Error saving milk: {e}")
         return jsonify({'error': str(e)}), 500
+
 

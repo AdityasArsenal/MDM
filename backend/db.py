@@ -148,7 +148,7 @@ def insert_milk_record(user_id, date, children, milk_open, ragi_open, milk_rcpt,
             "milk_rcpt": milk_rcpt,
             "ragi_rcpt": ragi_rcpt,
             "dist_type": dist_type
-        }).execute()
+        }, on_conflict="user_id,date").execute()
         return result.data[0] if result.data else None
     except Exception as e:
         print(f"Error inserting milk record: {e}")
