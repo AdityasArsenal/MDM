@@ -150,7 +150,7 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
       <TableCell>{(row.meal_type ? c1.wheat : 0).toFixed(3)}</TableCell>
       <TableCell>{(row.meal_type ? c1.oil : 0).toFixed(3)}</TableCell>
       <TableCell>{(row.meal_type ? c1.pulses : 0).toFixed(3)}</TableCell>
-      <TableCell className="border-r">{(row.meal_type ? c1.sadilvaru : 0).toFixed(3)}</TableCell>
+      <TableCell className="border-r bg-blue-50">{(row.meal_type ? c1.sadilvaru : 0).toFixed(3)}</TableCell>
       <TableCell>
         <Input
           type="number"
@@ -165,7 +165,7 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
       <TableCell>{(row.meal_type ? c2.wheat : 0).toFixed(3)}</TableCell>
       <TableCell>{(row.meal_type ? c2.oil : 0).toFixed(3)}</TableCell>
       <TableCell>{(row.meal_type ? c2.pulses : 0).toFixed(3)}</TableCell>
-      <TableCell className="border-r">{(row.meal_type ? c2.sadilvaru : 0).toFixed(3)}</TableCell>
+      <TableCell className="border-r bg-blue-50">{(row.meal_type ? c2.sadilvaru : 0).toFixed(3)}</TableCell>
       <TableCell className="font-medium text-center text-black">{(row.meal_type ? totalSadilvaru : 0).toFixed(3)}</TableCell>
       <TableCell className="font-medium text-center text-black">{totalChildren}</TableCell>
     </TableRow>
@@ -334,7 +334,7 @@ export default function Meals() {
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <div className="flex gap-2 mb-4">
             <select value={month} onChange={e => setMonth(Number(e.target.value))} 
-              className="flex-1 p-2 border rounded text-sm">
+              className="flex-1 p-2 border rounded text-sm text-black">
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i + 1} value={i + 1}>
                   {new Date(2000, i).toLocaleString('default', { month: 'long' })}
@@ -342,7 +342,7 @@ export default function Meals() {
               ))}
             </select>
             <select value={year} onChange={e => setYear(Number(e.target.value))} 
-              className="p-2 border rounded text-sm">
+              className="p-2 border rounded text-sm text-black">
               {Array.from({ length: 5 }, (_, i) => (
                 <option key={i} value={new Date().getFullYear() - 2 + i}>
                   {new Date().getFullYear() - 2 + i}
@@ -377,7 +377,7 @@ export default function Meals() {
                   <TableHead className="text-center font-bold text-black">Meal</TableHead>
                   <TableHead className="text-center font-bold text-black"></TableHead>
                   <TableHead colSpan={6} className="text-center border-r font-bold text-black">1-5</TableHead>
-                  <TableHead colSpan={6} className="text-center font-bold text-black">6-10</TableHead>
+                  <TableHead colSpan={6} className="text-center border-r font-bold text-black">6-10</TableHead>
                   <TableHead className="text-center font-bold text-black">ಒಟ್ಟು ಸಾದಿಲ್ವಾರು</TableHead>
                   <TableHead className="text-center font-bold text-black">ಒಟ್ಟು ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
                 </TableRow>
@@ -385,18 +385,18 @@ export default function Meals() {
                   <TableHead className="w-[100px] text-black"></TableHead>
                   <TableHead className="w-[120px] text-black">Meal Type</TableHead>
                   <TableHead className="w-[120px] text-black">ಬೇಳೆ (yes/no)</TableHead>
-                  <TableHead className="w-[100px] text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
+                  <TableHead className="w-[100px] text-center text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
                   <TableHead className="text-black">ಅಕ್ಕಿ</TableHead>
                   <TableHead className="text-black">ಗೋಧಿ</TableHead>
                   <TableHead className="text-black">ಎಣ್ಣೆ</TableHead>
                   <TableHead className="text-black">ಬೇಳೆ</TableHead>
-                  <TableHead className="border-r text-black">ಸಾದಿಲ್ವಾರು</TableHead>
-                  <TableHead className="w-[100px] text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
+                  <TableHead className="border-r text-black bg-blue-50">ಸಾದಿಲ್ವಾರು</TableHead>
+                  <TableHead className="w-[100px] text-center text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
                   <TableHead className="text-black">ಅಕ್ಕಿ</TableHead>
                   <TableHead className="text-black">ಗೋಧಿ</TableHead>
                   <TableHead className="text-black">ಎಣ್ಣೆ</TableHead>
                   <TableHead className="text-black">ಬೇಳೆ</TableHead>
-                  <TableHead className="border-r text-black">ಸಾದಿಲ್ವಾರು</TableHead>
+                  <TableHead className="border-r text-black bg-blue-50">ಸಾದಿಲ್ವಾರು</TableHead>
                   <TableHead className="text-center text-black"></TableHead>
                   <TableHead className="text-center text-black"></TableHead>
                 </TableRow>
@@ -420,13 +420,13 @@ export default function Meals() {
                   <TableCell className="font-bold text-black">{totals.wheat1.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.oil1.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.pulses1.toFixed(3)}</TableCell>
-                  <TableCell className="border-r font-bold text-black">{totals.sadil1.toFixed(3)}</TableCell>
+                  <TableCell className="border-r font-bold text-black bg-blue-50">{totals.sadil1.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.sumCount6to10}</TableCell>
                   <TableCell className="font-bold text-black">{totals.rice6.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.wheat6.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.oil6.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.pulses6.toFixed(3)}</TableCell>
-                  <TableCell className="border-r font-bold text-black">{totals.sadil6.toFixed(3)}</TableCell>
+                  <TableCell className="border-r font-bold text-black bg-blue-50">{totals.sadil6.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-center text-black">{(totals.sadil1 + totals.sadil6).toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-center text-black">{totals.sumCount1to5 + totals.sumCount6to10}</TableCell>
                 </TableRow>

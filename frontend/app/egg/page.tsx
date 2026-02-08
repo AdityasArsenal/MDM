@@ -191,7 +191,7 @@ export default function EggPage() {
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <div className="flex gap-2 mb-4">
             <select value={month} onChange={e => setMonth(Number(e.target.value))} 
-              className="flex-1 p-2 border rounded text-sm">
+              className="flex-1 p-2 border rounded text-sm text-black">
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i + 1} value={i + 1}>
                   {new Date(2000, i).toLocaleString('default', { month: 'long' })}
@@ -199,7 +199,7 @@ export default function EggPage() {
               ))}
             </select>
             <select value={year} onChange={e => setYear(Number(e.target.value))} 
-              className="p-2 border rounded text-sm">
+              className="p-2 border rounded text-sm text-black">
               {Array.from({ length: 5 }, (_, i) => (
                 <option key={i} value={new Date().getFullYear() - 2 + i}>
                   {new Date().getFullYear() - 2 + i}
@@ -284,17 +284,17 @@ export default function EggPage() {
                 <TableRow>
                   <TableHead></TableHead>
                   <TableHead></TableHead>
-                  <TableHead className="text-xs">M</TableHead>
-                  <TableHead className="text-xs">F</TableHead>
-                  <TableHead className="text-xs">ಒಟ್ಟು</TableHead>
-                  <TableHead className="text-xs">ಹಣ</TableHead>
-                  <TableHead className="text-xs">M</TableHead>
-                  <TableHead className="text-xs">F</TableHead>
-                  <TableHead className="text-xs">ಒಟ್ಟು</TableHead>
-                  <TableHead className="text-xs">ಹಣ</TableHead>
-                  <TableHead className="text-xs">ಮೊಟ್ಟೆ</TableHead>
-                  <TableHead className="text-xs">ಬಾಳೆ</TableHead>
-                  <TableHead className="text-xs">ಒಟ್ಟು</TableHead>
+                  <TableHead className="text-xs text-center">M</TableHead>
+                  <TableHead className="text-xs text-center">F</TableHead>
+                  <TableHead className="text-xs text-center">ಒಟ್ಟು</TableHead>
+                  <TableHead className="text-xs text-center">ಹಣ</TableHead>
+                  <TableHead className="text-xs text-center">M</TableHead>
+                  <TableHead className="text-xs text-center">F</TableHead>
+                  <TableHead className="text-xs text-center">ಒಟ್ಟು</TableHead>
+                  <TableHead className="text-xs text-center">ಹಣ</TableHead>
+                  <TableHead className="text-xs text-center">ಮೊಟ್ಟೆ</TableHead>
+                  <TableHead className="text-xs text-center">ಬಾಳೆ</TableHead>
+                  <TableHead className="text-xs text-center">ಒಟ್ಟು</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>

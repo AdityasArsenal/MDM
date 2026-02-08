@@ -31,15 +31,26 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, onChange }: EggTa
     <TableRow>
       <TableCell className="text-xs">{new Date(row.date).getDate()}</TableCell>
       <TableCell>
-        <select 
-          value={row.payer} 
-          onChange={e => onChange(index, 'payer', e.target.value)}
-          className="w-20 p-1 border rounded text-xs"
-        >
-          <option value="">-</option>
-          <option value="APF">APF</option>
-          <option value="GOV">GOV</option>
-        </select>
+        <div className="flex flex-col gap-1">
+          <button
+            onClick={() => onChange(index, 'payer', 'APF')}
+            className={`px-2 py-1 text-xs rounded ${
+              row.payer === 'APF'
+                ? 'bg-blue-500 text-white font-semibold'
+                : 'bg-gray-200'
+            }`}>
+            APF
+          </button>
+          <button
+            onClick={() => onChange(index, 'payer', 'GOV')}
+            className={`px-2 py-1 text-xs rounded ${
+              row.payer === 'GOV'
+                ? 'bg-orange-500 text-white font-semibold'
+                : 'bg-gray-200'
+            }`}>
+            GOV
+          </button>
+        </div>
       </TableCell>
       <TableCell>
         <Input 
