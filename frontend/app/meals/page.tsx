@@ -26,6 +26,10 @@ import {
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
+if (!BACKEND_URL) {
+  throw new Error("NEXT_PUBLIC_BACKEND_URL is undefined. App cannot start.");
+}
+
 interface MealTableRowProps {
   row: MealRow;
   onInputChange: (id: number, field: 'cnt_1to5' | 'cnt_6to10', value: number) => void;

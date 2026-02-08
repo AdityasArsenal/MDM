@@ -21,6 +21,10 @@ import MilkTableRow from './MilkTableRow';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
+if (!BACKEND_URL) {
+  throw new Error("NEXT_PUBLIC_BACKEND_URL is undefined. App cannot start.");
+}
+
 export default function Milk() {
   const router = useRouter();
   const [userId, setUserId] = useState<string>('');
