@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { exportToPDF } from '@/app/utils/pdf';
 import {
   Table,
   TableBody,
@@ -31,6 +32,7 @@ interface EggRecord {
 
 export default function EggPage() {
   const router = useRouter();
+  const printRef = useRef<HTMLDivElement>(null);
   const [userId, setUserId] = useState<string>('');
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -47,6 +49,12 @@ export default function EggPage() {
       return;
     }
     setUserId(JSON.parse(user).id);
+    
+    // Load selected month/year from localStorage if available
+    const savedMonth = localStorage.getItem('selectedMonth');
+    const savedYear = localStorage.getItem('selectedYear');
+    if (savedMonth) setMonth(Number(savedMonth));
+    if (savedYear) setYear(Number(savedYear));
   }, [router]);
 
   const loadData = useCallback(async () => {
@@ -185,10 +193,28 @@ export default function EggPage() {
 
   const summary = calcSummary;
 
+  const handleExportPDF = () => {
+    const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+    const fileName = `Egg_Banana_${monthName}_${year}.pdf`;
+    exportToPDF(
+      printRef,
+      fileName,
+      () => alert('PDF exported successfully!'),
+      (error) => alert('Export failed: ' + error)
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-2">
       <div className="max-w-full mx-auto">
         <div className="bg-white rounded-lg shadow p-4 mb-4">
+          <Button 
+            onClick={() => router.push('/dashboard')} 
+            variant="outline" 
+            className="mb-4 w-full"
+          >
+            ← Back to Dashboard
+          </Button>
           <div className="flex gap-2 mb-4">
             <select value={month} onChange={e => setMonth(Number(e.target.value))} 
               className="flex-1 p-2 border rounded text-sm text-black">
@@ -223,14 +249,20 @@ export default function EggPage() {
             </div>
           </div>
 
-          <Button onClick={saveData} disabled={saving || loading} className="w-full">
-            {saving ? 'Saving...' : 'Save All'}
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={saveData} disabled={saving || loading} className="flex-1">
+              {saving ? 'Saving...' : 'Save All'}
+            </Button>
+            <Button onClick={handleExportPDF} disabled={loading} className="flex-1">
+              Download PDF
+            </Button>
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-4 mb-4">
-          <h3 className="font-semibold mb-2 text-center">Summary</h3>
-          <Table>
+        <div ref={printRef}>
+          <div className="bg-white rounded-lg shadow p-4 mb-4">
+            <h3 className="font-semibold mb-2 text-center">Summary</h3>
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead></TableHead>
@@ -313,6 +345,7 @@ export default function EggPage() {
             </Table>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

@@ -65,5 +65,5 @@ export const isToday = (dateStr: string) => {
 
 export const formatDate = (dateStr: string) => {
   const d = new Date(dateStr + 'T12:00:00');
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  return d.getDate();
 };

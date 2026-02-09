@@ -47,7 +47,7 @@ export default function Home() {
         if (!data.user.is_subscribed) {
           router.push('/payment');
         } else {
-          router.push('/milk');
+          router.push('/dashboard');
         }
       }
     } catch (error: any) {

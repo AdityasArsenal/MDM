@@ -33,8 +33,7 @@ const MilkTableRow = ({ row, onHandleChange }: MilkTableRowProps) => {
   return (
     <TableRow>
       <TableCell className={sunday ? 'text-red-600 font-semibold' : ''}>
-        {row.date.split('-').reverse().join('/')}
-        <div className="text-xs text-gray-500">{dayName}</div>
+        {new Date(row.date + 'T12:00:00').getDate()}
       </TableCell>
       <TableCell>
         <div className="flex flex-col gap-1">

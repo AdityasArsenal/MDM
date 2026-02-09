@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { exportToPDF } from '@/app/utils/pdf';
 import {
   Table,
   TableBody,
@@ -39,6 +40,7 @@ interface StockRow {
 
 export default function Stock() {
   const router = useRouter();
+  const printRef = useRef<HTMLDivElement>(null);
   const [userId, setUserId] = useState<string>('');
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -53,6 +55,12 @@ export default function Stock() {
       return;
     }
     setUserId(JSON.parse(user).id);
+    
+    // Load selected month/year from localStorage if available
+    const savedMonth = localStorage.getItem('selectedMonth');
+    const savedYear = localStorage.getItem('selectedYear');
+    if (savedMonth) setMonth(Number(savedMonth));
+    if (savedYear) setYear(Number(savedYear));
   }, [router]);
 
   const loadData = useCallback(async () => {
@@ -243,10 +251,28 @@ export default function Stock() {
 
   const dates = Object.keys(groupedRows).sort();
 
+  const handleExportPDF = () => {
+    const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+    const fileName = `Stock_${monthName}_${year}.pdf`;
+    exportToPDF(
+      printRef,
+      fileName,
+      () => alert('PDF exported successfully!'),
+      (error) => alert('Export failed: ' + error)
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-2">
       <div className="max-w-full mx-auto">
         <div className="bg-white rounded-lg shadow p-4 mb-4">
+          <Button 
+            onClick={() => router.push('/dashboard')} 
+            variant="outline" 
+            className="mb-4 w-full"
+          >
+            ← Back to Dashboard
+          </Button>
           <div className="flex gap-2 mb-4">
             <select value={month} onChange={e => setMonth(Number(e.target.value))} 
               className="flex-1 p-2 border rounded text-sm text-black">
@@ -265,15 +291,20 @@ export default function Stock() {
               ))}
             </select>
           </div>
-          <Button onClick={saveData} disabled={saving || loading} className="w-full">
-            {saving ? 'Saving...' : 'Save All'}
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={saveData} disabled={saving || loading} className="flex-1">
+              {saving ? 'Saving...' : 'Save All'}
+            </Button>
+            <Button onClick={handleExportPDF} disabled={loading} className="flex-1">
+              Download PDF
+            </Button>
+          </div>
         </div>
 
         {loading ? (
           <div className="text-center p-8">Loading...</div>
         ) : (
-          <div className="rounded-md border overflow-x-auto bg-white">
+          <div ref={printRef} className="rounded-md border overflow-x-auto bg-white">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -340,7 +371,7 @@ export default function Stock() {
                     <React.Fragment key={date}>
                       <TableRow className={isSunday ? 'bg-red-50' : ''}>
                         <TableCell rowSpan={2} className="font-medium">
-                          {new Date(date).getDate()}/{month}
+                          {new Date(date).getDate()}
                         </TableCell>
                         <TableCell>1-5</TableCell>
                         {isFirstDay ? (

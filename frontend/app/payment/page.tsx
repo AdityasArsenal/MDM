@@ -53,6 +53,9 @@ export default function Payment() {
       
       if (data.payment_url) {
         window.location.href = data.payment_url;
+      } else if (data.success) {
+        // Payment successful, redirect to dashboard
+        router.push('/dashboard');
       } else {
         setError('No payment URL received');
       }
