@@ -192,7 +192,7 @@ def insert_stock(user_id, date, grade, rice_add, wheat_add, oil_add, pulse_add, 
         if pulse_open is not None:
             data["pulse_open"] = pulse_open
 
-        result = supabase.table("stock").upsert(data, on_conflict=["user_id", "date", "grade"]).execute()
+        result = supabase.table("stock").upsert(data, on_conflict="user_id,date,grade").execute()
         return result.data[0] if result.data else None
     except Exception as e:
         print(f"Error inserting stock: {e}")
