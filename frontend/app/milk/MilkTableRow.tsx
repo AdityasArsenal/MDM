@@ -17,9 +17,10 @@ import {
 interface MilkTableRowProps {
   row: MilkRow;
   onHandleChange: (id: number, field: keyof MilkRow, value: any) => void;
+  isFirstDay?: boolean;
 }
 
-const MilkTableRow = ({ row, onHandleChange }: MilkTableRowProps) => {
+const MilkTableRow = ({ row, onHandleChange, isFirstDay = false }: MilkTableRowProps) => {
   const totalMilk = useMemo(() => calculateTotalMilk(row.milk_open || 0, row.milk_rcpt || 0), [row.milk_open, row.milk_rcpt]);
   const totalRagi = useMemo(() => calculateTotalRagi(row.ragi_open || 0, row.ragi_rcpt || 0), [row.ragi_open, row.ragi_rcpt]);
   const distMilk = useMemo(() => calculateMilkDistribution(row.children || 0), [row.children]);
@@ -66,8 +67,32 @@ const MilkTableRow = ({ row, onHandleChange }: MilkTableRowProps) => {
           disabled={sunday}
         />
       </TableCell>
-      <TableCell>{(row.milk_open || 0).toFixed(3)}</TableCell>
-      <TableCell>{(row.ragi_open || 0).toFixed(3)}</TableCell>
+      <TableCell>
+        {isFirstDay ? (
+          <Input
+            type="number"
+            value={row.milk_open || 0}
+            onChange={e => onHandleChange(row.id, 'milk_open', e.target.valueAsNumber || 0)}
+            className="w-20"
+            step="0.001"
+          />
+        ) : (
+          (row.milk_open || 0).toFixed(3)
+        )}
+      </TableCell>
+      <TableCell>
+        {isFirstDay ? (
+          <Input
+            type="number"
+            value={row.ragi_open || 0}
+            onChange={e => onHandleChange(row.id, 'ragi_open', e.target.valueAsNumber || 0)}
+            className="w-20"
+            step="0.001"
+          />
+        ) : (
+          (row.ragi_open || 0).toFixed(3)
+        )}
+      </TableCell>
       <TableCell>
         <Input
           type="number"

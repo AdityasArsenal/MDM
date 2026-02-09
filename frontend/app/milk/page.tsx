@@ -120,7 +120,11 @@ export default function Milk() {
         } else {
           (newRows[idx] as any)[field] = value;
         }
-        return recalculateOpeningStock(newRows, idx);
+        
+        // Only recalculate from the next row if we're not editing the first day's opening stock
+        // If editing first day's opening stock, recalculate from index 1
+        const recalcStartIdx = (idx === 0 && (field === 'milk_open' || field === 'ragi_open')) ? 1 : idx;
+        return recalculateOpeningStock(newRows, recalcStartIdx);
       }
       
       return newRows;
@@ -259,11 +263,12 @@ export default function Milk() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map(r => (
+                {rows.map((r, index) => (
                   <MilkTableRow
                     key={r.id}
                     row={r}
                     onHandleChange={handleChange}
+                    isFirstDay={index === 0}
                   />
                 ))}
               </TableBody>
