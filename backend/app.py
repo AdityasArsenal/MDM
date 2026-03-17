@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from flask_cors import CORS
 from config import Config
@@ -34,5 +35,7 @@ def health():
     return {'status': 'ok'}
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
-
+    # Read PORT from environment variable, default to 8000
+    port = int(os.environ.get('PORT', 8000))
+    # Run with host 0.0.0.0 to accept external connections
+    app.run(host='0.0.0.0', port=port, debug=False)
