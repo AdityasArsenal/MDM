@@ -9,6 +9,11 @@ from routes.egg import egg_bp
 from routes.pay import pay_bp
 from routes.sub import sub_bp
 
+import logging
+logging.getLogger("apscheduler").setLevel(logging.WARNING)
+logging.getLogger("phonepe").setLevel(logging.ERROR)
+
+
 app = Flask(__name__)
 app.config.from_object(Config)
 
@@ -29,5 +34,5 @@ def health():
     return {'status': 'ok'}
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=Flask)
+    app.run(host='0.0.0.0', port=5000)
 
