@@ -9,11 +9,13 @@ from routes.milk import milk_bp
 from routes.egg import egg_bp
 from routes.pay import pay_bp
 from routes.sub import sub_bp
+from dotenv import load_dotenv
+
+load_dotenv()
 
 import logging
 logging.getLogger("apscheduler").setLevel(logging.WARNING)
 logging.getLogger("phonepe").setLevel(logging.ERROR)
-
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -34,8 +36,12 @@ app.register_blueprint(sub_bp, url_prefix='/api/sub')
 def health():
     return {'status': 'ok'}
 
+@app.route('/')
+def hello():
+    return 'Hello world, welcome to MDM backend!'
+
 if __name__ == '__main__':
     # Read PORT from environment variable, default to 8000
-    port = int(os.environ.get('PORT', 8000))
+    port = int(os.getenv('PORT', 8000))
     # Run with host 0.0.0.0 to accept external connections
     app.run(host='0.0.0.0', port=port, debug=False)

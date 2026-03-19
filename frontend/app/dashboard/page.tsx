@@ -28,6 +28,21 @@ export default function Dashboard() {
     }
     const userData = JSON.parse(user);
     setUserName(userData.name || userData.email || 'User');
+
+    // Check subscription status on every dashboard visit
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/sub/check?user_id=${userData.id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.has_active_subscription) {
+          router.push('/payment');
+        }
+        else{
+          console.log("sub is ac")
+        }
+      })
+      .catch(() => {
+        // On network error, fail open (don't block the user)
+      });
   }, [router]);
 
   const handleNavigate = () => {
