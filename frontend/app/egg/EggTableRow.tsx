@@ -37,7 +37,7 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, onChange }: EggTa
             className={`px-2 py-1 text-xs rounded ${
               row.payer === 'APF'
                 ? 'bg-blue-500 text-white font-semibold'
-                : 'bg-gray-200'
+                : 'bg-gray-200 text-black'
             }`}>
             APF
           </button>
@@ -46,7 +46,7 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, onChange }: EggTa
             className={`px-2 py-1 text-xs rounded ${
               row.payer === 'GOV'
                 ? 'bg-orange-500 text-white font-semibold'
-                : 'bg-gray-200'
+                : 'bg-gray-200 text-black'
             }`}>
             GOV
           </button>

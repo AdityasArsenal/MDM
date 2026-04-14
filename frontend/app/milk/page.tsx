@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '@/app/components/ui/table';
 import { Button } from '@/app/components/ui/button';
+import { PageFooter } from '@/app/components/PageFooter';
 import {
   MilkRow,
   recalculateOpeningStock,
@@ -191,7 +192,7 @@ export default function Milk() {
           <Button 
             onClick={() => router.push('/dashboard')} 
             variant="outline" 
-            className="mb-4 w-full"
+            className="mb-4 w-full text-black"
           >
             ← Back to Dashboard
           </Button>
@@ -237,7 +238,7 @@ export default function Milk() {
                 <TableRow>
                   <TableHead className="text-center">ದಿನಾಂಕ</TableHead>
                   <TableHead className="text-center">ಆಯ್ಕೆ</TableHead>
-                  <TableHead className="text-center">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
+                  <TableHead className="min-w-[120px] text-center">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
                   <TableHead colSpan={2} className="text-center">ಆರಂಭಿಕ ಶಿಲ್ಕು</TableHead>
                   <TableHead colSpan={2} className="text-center">ತಿಂಗಳ ಸ್ವೀಕೃತಿ</TableHead>
                   <TableHead colSpan={2} className="text-center">ಒಟ್ಟು</TableHead>
@@ -249,10 +250,10 @@ export default function Milk() {
                   <TableHead></TableHead>
                   <TableHead></TableHead>
                   <TableHead></TableHead>
-                  <TableHead>ಹಾಲು</TableHead>
-                  <TableHead>ರಾಗಿ</TableHead>
-                  <TableHead>ಹಾಲು</TableHead>
-                  <TableHead>ರಾಗಿ</TableHead>
+                  <TableHead className="min-w-[120px] text-center">ಹಾಲು</TableHead>
+                  <TableHead className="min-w-[120px] text-center">ರಾಗಿ</TableHead>
+                  <TableHead className="min-w-[120px] text-center">ಹಾಲು</TableHead>
+                  <TableHead className="min-w-[120px] text-center">ರಾಗಿ</TableHead>
                   <TableHead>ಹಾಲು</TableHead>
                   <TableHead>ರಾಗಿ</TableHead>
                   <TableHead>ಹಾಲು</TableHead>
@@ -290,6 +291,7 @@ export default function Milk() {
           </div>
         )}
       </div>
+      <PageFooter />
     </div>
   );
 }

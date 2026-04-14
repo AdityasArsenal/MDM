@@ -29,11 +29,11 @@ export function SheetSelector({ sheets, value, onValueChange }: SheetSelectorPro
       <select
         value={value}
         onChange={(e) => onValueChange(e.target.value)}
-        className={`w-full p-3 border rounded-lg text-base bg-white ${!hasBeenClicked ? 'animate-pulse border-blue-500' : ''}`}
+        className={`w-full p-3 border rounded-lg text-base bg-white text-black ${!hasBeenClicked ? 'animate-pulse border-blue-500' : ''}`}
       >
-        <option value="">Select a sheet</option>
+        <option value="" className="text-black">Select a sheet</option>
         {sheets.map((sheet) => (
-          <option key={sheet.name} value={sheet.name}>
+          <option key={sheet.name} value={sheet.name} className="text-black">
             {sheet.displayName}
           </option>
         ))}

@@ -13,6 +13,7 @@ import {
 } from '@/app/components/ui/table';
 import { Input } from '@/app/components/ui/input';
 import { Button } from '@/app/components/ui/button';
+import { PageFooter } from '@/app/components/PageFooter';
 import EggTableRow from './EggTableRow';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -211,7 +212,7 @@ export default function EggPage() {
           <Button 
             onClick={() => router.push('/dashboard')} 
             variant="outline" 
-            className="mb-4 w-full"
+            className="mb-4 w-full text-black"
           >
             ← Back to Dashboard
           </Button>
@@ -316,12 +317,12 @@ export default function EggPage() {
                 <TableRow>
                   <TableHead></TableHead>
                   <TableHead></TableHead>
-                  <TableHead className="text-xs text-center">M</TableHead>
-                  <TableHead className="text-xs text-center">F</TableHead>
+                  <TableHead className="min-w-[120px] text-xs text-center">M</TableHead>
+                  <TableHead className="min-w-[120px] text-xs text-center">F</TableHead>
                   <TableHead className="text-xs text-center">ಒಟ್ಟು</TableHead>
                   <TableHead className="text-xs text-center">ಹಣ</TableHead>
-                  <TableHead className="text-xs text-center">M</TableHead>
-                  <TableHead className="text-xs text-center">F</TableHead>
+                  <TableHead className="min-w-[120px] text-xs text-center">M</TableHead>
+                  <TableHead className="min-w-[120px] text-xs text-center">F</TableHead>
                   <TableHead className="text-xs text-center">ಒಟ್ಟು</TableHead>
                   <TableHead className="text-xs text-center">ಹಣ</TableHead>
                   <TableHead className="text-xs text-center">ಮೊಟ್ಟೆ</TableHead>
@@ -347,6 +348,7 @@ export default function EggPage() {
         )}
         </div>
       </div>
+      <PageFooter />
     </div>
   );
 }

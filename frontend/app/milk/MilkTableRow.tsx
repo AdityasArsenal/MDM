@@ -43,7 +43,7 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false }: MilkTableRowP
             className={`px-2 py-1 text-xs rounded ${
               row.dist_type === 'milk & ragi'
                 ? 'bg-blue-500 text-white font-semibold'
-                : 'bg-gray-200'
+                : 'bg-gray-200 text-black'
             }`}>
             ಹಾಲು ಮತ್ತು ರಾಗಿ
           </button>
@@ -52,7 +52,7 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false }: MilkTableRowP
             className={`px-2 py-1 text-xs rounded ${
               row.dist_type === 'only milk'
                 ? 'bg-orange-500 text-white font-semibold'
-                : 'bg-gray-200'
+                : 'bg-gray-200 text-black'
             }`}>
             ಕೇವಲ ಹಾಲು
           </button>

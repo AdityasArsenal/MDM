@@ -68,7 +68,7 @@ export default function Home() {
         strategy="afterInteractive"
       />
       
-      <h2 className="text-2xl font-semibold mb-8">Flask Auth Testing</h2>
+      <h2 className="text-2xl font-semibold mb-8 text-black">MDM Management System Login</h2>
       
       <div 
         id="g_id_onload"
@@ -80,8 +80,8 @@ export default function Home() {
 
       {response && (
         <div className="mt-5 p-4 bg-gray-100 rounded-md w-4/5 overflow-x-auto">
-          <h3 className="text-lg font-medium mb-2">Backend Response:</h3>
-          <pre className="text-sm whitespace-pre-wrap">{response}</pre>
+          <h3 className="text-lg font-medium mb-2 text-black">Backend Response:</h3>
+          <pre className="text-sm whitespace-pre-wrap text-black">{response}</pre>
         </div>
       )}
     </div>

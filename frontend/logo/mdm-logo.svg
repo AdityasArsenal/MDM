@@ -1,0 +1,24 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="95" fill="#3B82F6" stroke="#1E40AF" stroke-width="3"/>
+  
+  <!-- Plate/Bowl Shape -->
+  <ellipse cx="100" cy="110" rx="60" ry="15" fill="#FFFFFF" opacity="0.3"/>
+  <ellipse cx="100" cy="105" rx="55" ry="45" fill="#FFFFFF"/>
+  
+  <!-- Rice/Food representation -->
+  <circle cx="85" cy="95" r="8" fill="#FCD34D"/>
+  <circle cx="100" cy="90" r="9" fill="#FCD34D"/>
+  <circle cx="115" cy="95" r="8" fill="#FCD34D"/>
+  <circle cx="92" cy="105" r="7" fill="#FCD34D"/>
+  <circle cx="108" cy="105" r="7" fill="#FCD34D"/>
+  
+  <!-- Spoon -->
+  <ellipse cx="130" cy="80" rx="6" ry="10" fill="#E5E7EB" transform="rotate(-30 130 80)"/>
+  <rect x="128" y="85" width="3" height="35" fill="#E5E7EB" transform="rotate(-30 130 80)"/>
+  
+  <!-- Text MDM -->
+  <text x="100" y="160" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#FFFFFF" text-anchor="middle">MDM</text>
+  
+  <!-- Decorative elements -->
+  <circle cx="40" cy="40" r="4" fill="#FFFFFF" o

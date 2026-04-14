@@ -70,9 +70,12 @@ export default function Dashboard() {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">MDM Management System</h1>
-            <p className="text-sm text-gray-600">Welcome, {userName}</p>
+          <div className="flex items-center gap-4">
+            <img src="/mdm-logo.svg" alt="MDM Logo" className="w-12 h-12" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">MDM Management System</h1>
+              <p className="text-sm text-gray-600">Welcome, {userName}</p>
+            </div>
           </div>
           <Button onClick={handleLogout} variant="outline">
             Logout
@@ -150,13 +153,37 @@ export default function Dashboard() {
 
         {/* Info Card */}
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-semibold text-blue-900 mb-2">📋 Instructions</h4>
+          <h4 className="font-semibold text-blue-900 mb-2">📋 Quick Instructions</h4>
           <ul className="text-sm text-blue-800 space-y-1">
             <li>• Select a sheet type from the dropdown</li>
             <li>• Choose the month and year you want to work with</li>
             <li>• Click "Open Selected Sheet" or use Quick Access cards</li>
             <li>• Remember to save your changes before switching sheets</li>
           </ul>
+        </div>
+
+        {/* Footer Links */}
+        <div className="mt-6 flex flex-wrap gap-4 justify-center text-sm">
+          <button 
+            onClick={() => router.push('/instructions')}
+            className="text-blue-600 hover:underline"
+          >
+            How to Use This App
+          </button>
+          <span className="text-gray-400">|</span>
+          <button 
+            onClick={() => router.push('/privacy')}
+            className="text-blue-600 hover:underline"
+          >
+            Privacy Policy
+          </button>
+          <span className="text-gray-400">|</span>
+          <button 
+            onClick={() => router.push('/terms')}
+            className="text-blue-600 hover:underline"
+          >
+            Terms & Refund Policy
+          </button>
         </div>
       </div>
     </div>

@@ -77,12 +77,12 @@ export default function Payment() {
             <select 
               value={plan}
               onChange={(e) => setPlan(e.target.value)}
-              className="w-full p-3 border rounded-lg text-base"
+              className="w-full p-3 border rounded-lg text-base text-black"
               required
             >
-              <option value="">Choose a plan</option>
-              <option value="1_month">1 Month (₹1)</option>
-              <option value="3_month">3 Months (₹2)</option>
+              <option value="" className="text-black">Choose a plan</option>
+              <option value="1_month" className="text-black">1 Month (₹1)</option>
+              <option value="3_month" className="text-black">3 Months (₹2)</option>
             </select>
           </div>
 

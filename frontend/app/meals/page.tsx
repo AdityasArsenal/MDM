@@ -14,6 +14,7 @@ import {
 } from '@/app/components/ui/table';
 import { Input } from '@/app/components/ui/input';
 import { Button } from '@/app/components/ui/button';
+import { PageFooter } from '@/app/components/PageFooter';
 import {
   MealRow,
   MealType,
@@ -90,9 +91,9 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
             className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
               row.meal_type === 'rice'
                 ? 'bg-blue-500 text-white font-semibold'
-                : 'bg-gray-200 hover:bg-gray-300'
+                : 'bg-gray-200 text-black hover:bg-gray-300'
             } ${isRowSunday ? 'opacity-50 cursor-not-allowed' : ''}`}>
-            {row.meal_type === 'rice' && <span>✓</span>}
+            {row.meal_type === 'rice' && <span className="text-white">✓</span>}
             <span>ಅಕ್ಕಿ</span>
           </button>
           <button
@@ -101,9 +102,9 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
             className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
               row.meal_type === 'wheat'
                 ? 'bg-orange-500 text-white font-semibold'
-                : 'bg-gray-200 hover:bg-gray-300'
+                : 'bg-gray-200 text-black hover:bg-gray-300'
             } ${isRowSunday ? 'opacity-50 cursor-not-allowed' : ''}`}>
-            {row.meal_type === 'wheat' && <span>✓</span>}
+            {row.meal_type === 'wheat' && <span className="text-white">✓</span>}
             <span>ಗೋಧಿ</span>
           </button>
         </div>
@@ -116,10 +117,10 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
             className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
               row.has_pulses
                 ? 'bg-green-500 text-white font-semibold'
-                : 'bg-gray-200 hover:bg-gray-300'
+                : 'bg-gray-200 text-black hover:bg-gray-300'
             } ${isRowSunday ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {row.has_pulses && <span>✓</span>}
+            {row.has_pulses && <span className="text-white">✓</span>}
             <span>Yes</span>
           </button>
           <button
@@ -128,10 +129,10 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
             className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
               !row.has_pulses
                 ? 'bg-red-500 text-white font-semibold'
-                : 'bg-gray-200 hover:bg-gray-300'
+                : 'bg-gray-200 text-black hover:bg-gray-300'
             } ${isRowSunday ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {!row.has_pulses && <span>✓</span>}
+            {!row.has_pulses && <span className="text-white">✓</span>}
             <span>No</span>
           </button>
         </div>
@@ -141,7 +142,7 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
           type="number"
           defaultValue={Number.isFinite(row.cnt_1to5) ? row.cnt_1to5 : 0}
           onChange={e => handleInputChange(e, 'cnt_1to5')}
-          className="w-20 text-black"
+          className="w-full text-black"
           placeholder="0"
           disabled={isRowSunday}
         />
@@ -184,6 +185,7 @@ export default function Meals() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -354,10 +356,11 @@ export default function Meals() {
           <Button 
             onClick={() => router.push('/dashboard')} 
             variant="outline" 
-            className="mb-4 w-full"
+            className="mb-4 w-full text-black"
           >
             ← Back to Dashboard
           </Button>
+          
           <div className="flex gap-2 mb-4">
             <select value={month} onChange={e => setMonth(Number(e.target.value))} 
               className="flex-1 p-2 border rounded text-sm text-black">
@@ -376,7 +379,6 @@ export default function Meals() {
               ))}
             </select>
           </div>
-
           {error && <div className="p-2 bg-red-50 text-red-600 rounded mb-4 text-sm">{error}</div>}
 
           <div className="flex gap-2">
@@ -389,14 +391,24 @@ export default function Meals() {
           </div>
         </div>
 
+        <div className="flex justify-end gap-2 mb-2">
+          <Button onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}>-</Button>
+          <Button onClick={() => setZoom(z => Math.min(2, z + 0.1))}>+</Button>
+        </div>
+
         {loading ? (
           <div className="text-center p-8">Loading...</div>
         ) : (
-          <div ref={printRef} className="rounded-md border overflow-x-auto bg-white">
-            <Table>
+          <div className="overflow-auto">
+            <div
+              ref={printRef}
+              style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
+              className="rounded-md border bg-white inline-block"
+            >
+              <Table>
               <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={17} className="text-center">
+                  <TableCell colSpan={20} className="text-center">
                     <div className="text-lg font-semibold text-black">
                       {monthName} {year} - Meal Planning Schedule
                     </div>
@@ -416,13 +428,13 @@ export default function Meals() {
                   <TableHead className="w-[100px] text-black"></TableHead>
                   <TableHead className="w-[120px] text-black">Meal Type</TableHead>
                   <TableHead className="w-[120px] text-black">ಬೇಳೆ (yes/no)</TableHead>
-                  <TableHead className="w-[100px] text-center text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
+                  <TableHead className="min-w-[120px] text-center text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
                   <TableHead className="text-black">ಅಕ್ಕಿ</TableHead>
                   <TableHead className="text-black">ಗೋಧಿ</TableHead>
                   <TableHead className="text-black">ಎಣ್ಣೆ</TableHead>
                   <TableHead className="text-black">ಬೇಳೆ</TableHead>
                   <TableHead className="border-r text-black bg-blue-50">ಸಾದಿಲ್ವಾರು</TableHead>
-                  <TableHead className="w-[100px] text-center text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
+                  <TableHead className="min-w-[120px] text-center text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
                   <TableHead className="text-black">ಅಕ್ಕಿ</TableHead>
                   <TableHead className="text-black">ಗೋಧಿ</TableHead>
                   <TableHead className="text-black">ಎಣ್ಣೆ</TableHead>
@@ -464,8 +476,10 @@ export default function Meals() {
               </TableFooter>
             </Table>
           </div>
+        </div>
         )}
       </div>
+      <PageFooter />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
 } from '@/app/components/ui/table';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
+import { PageFooter } from '@/app/components/PageFooter';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -269,7 +270,7 @@ export default function Stock() {
           <Button 
             onClick={() => router.push('/dashboard')} 
             variant="outline" 
-            className="mb-4 w-full"
+            className="mb-4 w-full text-black"
           >
             ← Back to Dashboard
           </Button>
@@ -326,10 +327,10 @@ export default function Stock() {
                   <TableHead></TableHead>
                   {Array(5).fill(0).map((_, i) => (
                     <React.Fragment key={i}>
-                      <TableHead>ಅಕ್ಕಿ</TableHead>
-                      <TableHead>ಗೋಧಿ</TableHead>
-                      <TableHead>ಎಣ್ಣೆ</TableHead>
-                      <TableHead>ಬೇಳೆ</TableHead>
+                      <TableHead className="min-w-[120px] text-center">ಅಕ್ಕಿ</TableHead>
+                      <TableHead className="min-w-[120px] text-center">ಗೋಧಿ</TableHead>
+                      <TableHead className="min-w-[120px] text-center">ಎಣ್ಣೆ</TableHead>
+                      <TableHead className="min-w-[120px] text-center">ಬೇಳೆ</TableHead>
                     </React.Fragment>
                   ))}
                 </TableRow>
@@ -448,6 +449,7 @@ export default function Stock() {
           </div>
         )}
       </div>
+      <PageFooter />
     </div>
   );
 }

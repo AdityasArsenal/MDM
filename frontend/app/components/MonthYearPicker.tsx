@@ -27,10 +27,10 @@ export function MonthYearPicker({
       <select
         value={selectedMonth}
         onChange={(e) => onMonthChange(Number(e.target.value))}
-        className="flex-1 p-3 border rounded-lg text-base bg-white"
+        className="flex-1 p-3 border rounded-lg text-base bg-white text-black"
       >
         {months.map((month, idx) => (
-          <option key={month} value={idx + 1}>
+          <option key={month} value={idx + 1} className="text-black">
             {month}
           </option>
         ))}
@@ -38,10 +38,10 @@ export function MonthYearPicker({
       <select
         value={selectedYear}
         onChange={(e) => onYearChange(Number(e.target.value))}
-        className="p-3 border rounded-lg text-base bg-white min-w-[100px]"
+        className="p-3 border rounded-lg text-base bg-white min-w-[100px] text-black"
       >
         {years.map((year) => (
-          <option key={year} value={year}>
+          <option key={year} value={year} className="text-black">
             {year}
           </option>
         ))}
