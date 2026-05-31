@@ -36,6 +36,7 @@ export default function Milk() {
   const [rows, setRows] = useState<MilkRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -224,10 +225,20 @@ export default function Milk() {
           </div>
         </div>
 
+        <div className="flex justify-end gap-2 mb-2">
+          <Button onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}>-</Button>
+          <Button onClick={() => setZoom(z => Math.min(2, z + 0.1))}>+</Button>
+        </div>
+
         {loading ? (
           <div className="text-center p-8">Loading...</div>
         ) : (
-          <div ref={printRef} className="rounded-md border overflow-x-auto bg-white">
+          <div className="overflow-auto">
+            <div
+              ref={printRef}
+              style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
+              className="rounded-md border bg-white inline-block"
+            >
             <Table>
               <TableHeader>
                 <TableRow>
@@ -288,6 +299,7 @@ export default function Milk() {
                 </TableRow>
               </TableFooter>
             </Table>
+            </div>
           </div>
         )}
       </div>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SheetSelector } from '@/app/components/SheetSelector';
 import { MonthYearPicker } from '@/app/components/MonthYearPicker';
 import { Button } from '@/app/components/ui/button';
+import { AppHeader } from '@/app/components/AppHeader';
 
 const sheets = [
   { name: 'meals', displayName: 'MDM ದೈನಂದಿನ ದಾಸ್ತಾನು ನಿರ್ವಹಣಾ ವಹಿ (Meal Planning)', path: '/meals' },
@@ -60,28 +61,14 @@ export default function Dashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    router.push('/');
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <img src="/mdm-logo.svg" alt="MDM Logo" className="w-12 h-12" />
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">MDM Management System</h1>
-              <p className="text-sm text-gray-600">Welcome, {userName}</p>
-            </div>
-          </div>
-          <Button onClick={handleLogout} variant="outline">
-            Logout
-          </Button>
-        </div>
-      </div>
+      <AppHeader 
+        title="MDM Management System" 
+        subtitle={`Welcome, ${userName}`}
+        showBackButton={false}
+        userName={userName}
+      />
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">

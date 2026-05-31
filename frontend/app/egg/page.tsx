@@ -42,6 +42,7 @@ export default function EggPage() {
   const [bananaPrice, setBananaPrice] = useState(6);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -260,7 +261,17 @@ export default function EggPage() {
           </div>
         </div>
 
-        <div ref={printRef}>
+        <div className="flex justify-end gap-2 mb-2">
+          <Button onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}>-</Button>
+          <Button onClick={() => setZoom(z => Math.min(2, z + 0.1))}>+</Button>
+        </div>
+
+        <div className="overflow-auto">
+          <div
+            ref={printRef}
+            style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
+            className="inline-block"
+          >
           <div className="bg-white rounded-lg shadow p-4 mb-4">
             <h3 className="font-semibold mb-2 text-center">Summary</h3>
             <Table>
@@ -346,6 +357,7 @@ export default function EggPage() {
             </Table>
           </div>
         )}
+        </div>
         </div>
       </div>
       <PageFooter />
