@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
-import Image from 'next/image';
 
 declare global {
   interface Window {
@@ -15,7 +14,7 @@ declare global {
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 if (!BACKEND_URL) {
-  throw new Error('NEXT_PUBLIC_BACKEND_URL is undefined. App cannot start.');
+  throw new Error("NEXT_PUBLIC_BACKEND_URL is undefined. App cannot start.");
 }
 
 export default function Home() {
@@ -25,7 +24,7 @@ export default function Home() {
 
   const handleCredentialResponse = async (response: any) => {
     setLoading(true);
-    setResponse('Sending to backend...');
+    setResponse("Sending to backend...");
 
     try {
       const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
@@ -43,7 +42,7 @@ export default function Home() {
 
       if (data.user) {
         localStorage.setItem('user', JSON.stringify(data.user));
-
+        
         if (!data.user.is_subscribed) {
           router.push('/payment');
         } else {
@@ -51,7 +50,7 @@ export default function Home() {
         }
       }
     } catch (error: any) {
-      setResponse('Error connecting to backend: ' + error.message);
+      setResponse("Error connecting to backend: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -62,69 +61,65 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-[#EAF1FF] flex items-center justify-center px-4 py-10 font-sans">
-      <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
+    <div className="bg-white w-full h-screen min-h-screen overflow-hidden flex flex-col relative font-sans">
+      
+      <Script 
+        src="https://accounts.google.com/gsi/client" 
+        strategy="afterInteractive"
+      />
+      
+      {/* Top Image Section with Curved Bottom Edge */}
+      <div 
+        className="w-full h-[55%] relative overflow-hidden bg-[#fadce2]"
+        style={{
+          borderBottomLeftRadius: '50% 12%',
+          borderBottomRightRadius: '50% 12%'
+        }}
+      >
+        <img 
+          src="/MDM.jpeg" 
+          alt="MDM Background" 
+          className="w-full h-full object-cover"
+        />
+      </div>
 
-      <div className="w-full max-w-[420px] rounded-[28px] bg-white overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-[#D6E4FF]">
-        {/* Top illustration */}
-        <div className="relative h-[360px] w-full bg-[#EAF1FF]">
-          <Image
-            src="/MDM.jpeg"
-            alt="MDM"
-            fill
-            priority
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 420px"
-          />
-        </div>
+      {/* Bottom Content Section */}
+      <div className="flex-1 flex flex-col items-center pt-8 px-6 pb-6 text-center">
+        <h2 className="text-3xl font-bold text-[#2D314E] mb-3 tracking-tight">
+          MDM System
+        </h2>
+        
+        <p className="text-[#898E9E] font-medium text-[15px] leading-snug px-2 mb-10">
+          Every meal counted and <br/>  Every child served.
+        </p>
+        
+        <div 
+          id="g_id_onload"
+          data-client_id={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+          data-callback="handleCredentialResponse"
+          data-auto_prompt="false"
+        />
+        
+        {/* Google Sign-in Button customized to mimic the "Pill" design */}
+        <div 
+          className="g_id_signin transform scale-110" 
+          data-type="standard"
+          data-shape="pill"
+          data-theme="filled_blue"
+          data-text="continue_with"
+          data-size="large"
+        />
 
-        {/* Content */}
-        <div className="px-8 pt-8 pb-10 text-center">
-          <h2 className="text-[44px] leading-[1.05] font-extrabold tracking-tight text-[#1F2A4A]">
-            Unite
-          </h2>
-          <p className="mt-3 text-[16px] leading-6 text-[#8A94A6]">
-            MDM Management System Login
-          </p>
-
-          <div className="mt-8 flex flex-col items-center">
-            <div
-              id="g_id_onload"
-              data-client_id={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
-              data-callback="handleCredentialResponse"
-              data-auto_prompt="false"
-            />
-
-            {/* Styled Google button container (keeps logic same; Google renders inside) */}
-            <div
-              className={`w-full max-w-[260px] rounded-full bg-[#3D7BFF] shadow-[0_10px_20px_rgba(61,123,255,0.35)] transition-opacity ${
-                loading ? 'opacity-70 pointer-events-none' : 'opacity-100'
-              }`}
-            >
-              <div
-                className="g_id_signin flex justify-center"
-                data-type="standard"
-                data-size="large"
-                data-shape="pill"
-                data-theme="filled_blue"
-                data-text="continue_with"
-              />
-            </div>
-
-            {loading && (
-              <div className="mt-4 text-sm text-[#8A94A6]">Signing you in…</div>
-            )}
-          </div>
-
-          {response && (
-            <div className="mt-6 rounded-2xl bg-[#F4F7FF] p-4 text-left">
-              <h3 className="text-sm font-semibold text-[#1F2A4A]">Backend Response:</h3>
-              <pre className="mt-2 text-xs whitespace-pre-wrap text-[#1F2A4A] overflow-x-auto">
+        {/* Backend Response Logs (only visible when active) */}
+        {response && (
+          <div className="mt-auto w-full pt-6">
+            <div className="p-3 bg-gray-50 rounded-xl w-full overflow-x-auto border border-gray-100 max-h-[120px] overflow-y-auto">
+              <pre className="text-[10px] whitespace-pre-wrap text-gray-500 text-left font-mono">
                 {response}
               </pre>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
