@@ -73,8 +73,8 @@ client = StandardCheckoutClient.get_instance(
 )
 
 PLAN_PRICES = {
-    '1_month': 1,
-    '3_month': 2
+    '1_month': 18,
+    '3_month': 45
 }
 
 def verify_webhook_signature(authorization_header):

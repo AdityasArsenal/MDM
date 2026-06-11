@@ -59,8 +59,8 @@ export default function Payment() {
   };
 
   const plans = {
-    '1_month': { price: '₹1', label: '1 Month' },
-    '3_month': { price: '₹2', label: '3 Months' }
+    '1_month': { price: '₹19', label: '1 Month' },
+    '3_month': { price: '₹45', label: '3 Months' }
   };
 
   return (
