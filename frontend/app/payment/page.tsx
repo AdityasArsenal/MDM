@@ -12,7 +12,7 @@ if (!BACKEND_URL) {
 export default function Payment() {
   const router = useRouter();
   const [userId, setUserId] = useState<string>('');
-  const [plan, setPlan] = useState<string>('');
+  const [selectedPlan, setSelectedPlan] = useState<'1_month' | '3_month'>('1_month');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -26,14 +26,7 @@ export default function Payment() {
     setUserId(userData.id);
   }, [router]);
 
-  const handlePayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!plan) {
-      setError('Please select a plan');
-      return;
-    }
-
+  const handlePayment = async () => {
     setLoading(true);
     setError('');
 
@@ -44,7 +37,7 @@ export default function Payment() {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true'
         },
-        body: JSON.stringify({ user_id: userId, plan })
+        body: JSON.stringify({ user_id: userId, plan: selectedPlan })
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -54,52 +47,90 @@ export default function Payment() {
       if (data.payment_url) {
         window.location.href = data.payment_url;
       } else if (data.success) {
-        // Payment successful, redirect to dashboard
         router.push('/dashboard');
       } else {
-        setError('No payment URL received');
+        setError('Payment processing failed');
       }
     } catch (err: any) {
-      setError(err.message);
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const plans = {
+    '1_month': { price: '₹1', label: '1 Month' },
+    '3_month': { price: '₹2', label: '3 Months' }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-      <div className="w-full max-w-md bg-white rounded-lg shadow p-6">
-        <h2 className="text-2xl font-bold mb-6 text-center">Subscribe</h2>
-        
-        <form onSubmit={handlePayment} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Select Plan</label>
-            <select 
-              value={plan}
-              onChange={(e) => setPlan(e.target.value)}
-              className="w-full p-3 border rounded-lg text-base text-black"
-              required
-            >
-              <option value="" className="text-black">Choose a plan</option>
-              <option value="1_month" className="text-black">1 Month (₹1)</option>
-              <option value="3_month" className="text-black">3 Months (₹2)</option>
-            </select>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm bg-white rounded-lg shadow-sm border p-6">
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
           </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-1">Upgrade to Pro</h2>
+          <p className="text-sm text-gray-600">Get access to all premium features</p>
+        </div>
 
-          {error && (
-            <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
+        {/* Plan Selection */}
+        <div className="mb-6">
+          <div className="grid grid-cols-2 gap-3">
+            {Object.entries(plans).map(([key, plan]) => (
+              <button
+                key={key}
+                onClick={() => setSelectedPlan(key as '1_month' | '3_month')}
+                className={`p-3 text-sm rounded-lg border-2 transition-colors ${
+                  selectedPlan === key
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="font-medium">{plan.label}</div>
+                <div className="text-lg font-bold">{plan.price}</div>
+              </button>
+            ))}
+          </div>
+        </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white p-3 rounded-lg font-medium disabled:bg-gray-400"
-          >
-            {loading ? 'Processing...' : 'Continue to Payment'}
-          </button>
-        </form>
+        {/* Features */}
+        <div className="mb-6">
+          <div className="text-xs text-gray-600 mb-2">What's included:</div>
+          <div className="space-y-2">
+            {['PDF Export', 'Data Analytics', 'Cloud Sync', 'Priority Support'].map((feature) => (
+              <div key={feature} className="flex items-center text-sm">
+                <svg className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span className="text-gray-700">{feature}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="text-sm text-red-600">{error}</div>
+          </div>
+        )}
+
+        {/* CTA */}
+        <button
+          onClick={handlePayment}
+          disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? 'Processing...' : `Subscribe for ${plans[selectedPlan].price}`}
+        </button>
+
+        <p className="text-xs text-gray-500 text-center mt-3">
+          Cancel anytime • No hidden fees
+        </p>
       </div>
     </div>
   );
