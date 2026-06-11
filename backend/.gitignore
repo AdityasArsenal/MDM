@@ -4,3 +4,9 @@ __pycache__/
 menv/
 .vscode/
 .kiro/
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+
+rought/
