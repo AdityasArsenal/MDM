@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const ONE_MONTH_PRICE = process.env.ONE_MONTH_PRICE;
+const THREE_MONTH_PRICE = process.env.THREE_MONTH_PRICE;
 
 if (!BACKEND_URL) {
   throw new Error("NEXT_PUBLIC_BACKEND_URL is undefined. App cannot start.");

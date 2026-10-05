@@ -64,6 +64,10 @@ FRONTEND_FAILED_URL = os.getenv("FRONTEND_FAILED_URL")    # https://gov.nonexist
 WEBHOOK_USERNAME = os.getenv("WEBHOOK_USERNAME", "webhook_user")
 WEBHOOK_PASSWORD = os.getenv("WEBHOOK_PASSWORD", "webhook_pass")
 
+#plan chnages
+ONE_MONTH_PRICE = os.getenv("ONE_MONTH_PRICE")
+THREE_MONTH_PRICE = os.getenv("THREE_MONTH_PRICE")
+
 client = StandardCheckoutClient.get_instance(
     client_id=PHONEPE_CLIENT_ID, 
     client_secret=PHONEPE_CLIENT_SECRET, 
