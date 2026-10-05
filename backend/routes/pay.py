@@ -10,7 +10,7 @@ WEBHOOK SETUP INSTRUCTIONS:
 4. Webhook uses SHA256(username:password) for authorization verification
 
 PAYMENT FLOW:
-1. Frontend calls POST /api/pay/create with user_id and plan
+1. Frontend calls POST /api/pay/create with plan (user comes from the Bearer token)
 2. Backend creates payment record in DB (status='pending')
 3. Backend returns PhonePe payment URL to frontend
 4. User completes payment on PhonePe
@@ -31,7 +31,8 @@ ENVIRONMENT VARIABLES REQUIRED:
 - WEBHOOK_USERNAME, WEBHOOK_PASSWORD (must match PhonePe dashboard config)
 """
 
-from flask import Blueprint, request, jsonify, redirect
+from flask import Blueprint, request, jsonify, redirect, g
+from auth_session import login_required
 from db import insert_payment, get_payment_by_order_id, update_payment_status, insert_subscription
 from uuid import uuid4
 from phonepe.sdk.pg.payments.v2.standard_checkout_client import StandardCheckoutClient
@@ -64,9 +65,24 @@ FRONTEND_FAILED_URL = os.getenv("FRONTEND_FAILED_URL")    # https://gov.nonexist
 WEBHOOK_USERNAME = os.getenv("WEBHOOK_USERNAME", "webhook_user")
 WEBHOOK_PASSWORD = os.getenv("WEBHOOK_PASSWORD", "webhook_pass")
 
-#plan chnages
-ONE_MONTH_PRICE = os.getenv("ONE_MONTH_PRICE")
-THREE_MONTH_PRICE = os.getenv("THREE_MONTH_PRICE")
+def _required_price(env_name):
+    """Read a plan price in rupees from the environment. Fails fast if missing or invalid."""
+    raw = os.getenv(env_name)
+    if not raw:
+        raise RuntimeError(f"{env_name} environment variable is required")
+    try:
+        price = float(raw)
+    except ValueError:
+        raise RuntimeError(f"{env_name} must be a number, got {raw!r}")
+    if price <= 0:
+        raise RuntimeError(f"{env_name} must be greater than 0")
+    return price
+
+# Plan prices in rupees. Only these two plans exist; prices come from .env.
+PLAN_PRICES = {
+    '1_month': _required_price("ONE_MONTH_PRICE"),
+    '3_month': _required_price("THREE_MONTH_PRICE"),
+}
 
 client = StandardCheckoutClient.get_instance(
     client_id=PHONEPE_CLIENT_ID, 
@@ -75,11 +91,6 @@ client = StandardCheckoutClient.get_instance(
     env=Env.PRODUCTION,
     should_publish_events=True
 )
-
-PLAN_PRICES = {
-    '1_month': 18,
-    '3_month': 45
-}
 
 def verify_webhook_signature(authorization_header):
     """
@@ -191,14 +202,23 @@ def webhook():
         return jsonify({"status": "error", "message": "Internal error"}), 200
 
 
+@pay_bp.route('/plans', methods=['GET'])
+def get_plans():
+    """Plan list and prices (in rupees) so the frontend does not hardcode them"""
+    return jsonify({
+        plan: {'price': price, 'months': 3 if plan == '3_month' else 1}
+        for plan, price in PLAN_PRICES.items()
+    })
+
 @pay_bp.route('/create', methods=['POST'])
+@login_required
 def create_payment():
     """
     Create a new payment and redirect user to PhonePe
     Payment record is inserted BEFORE redirecting to ensure tracking
     """
     data = request.json
-    user_id = data.get('user_id')
+    user_id = g.user_id
     plan = data.get('plan')
     
     if not user_id or not plan:
@@ -207,7 +227,7 @@ def create_payment():
     if plan not in PLAN_PRICES:
         return jsonify({"error": "Invalid plan"}), 400
     
-    amount_in_paise = int(PLAN_PRICES[plan] * 100)
+    amount_in_paise = int(round(PLAN_PRICES[plan] * 100))
     unique_order_id = str(uuid4()).replace('-', '')[:32]
     
     # User redirect URL - they come back here after payment

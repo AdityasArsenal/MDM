@@ -1,11 +1,16 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
+from auth_session import load_session_user
 from db import get_egg_records, insert_egg_record
 
 egg_bp = Blueprint('egg', __name__)
 
+@egg_bp.before_request
+def require_login():
+    return load_session_user()
+
 @egg_bp.route('/<int:year>/<int:month>', methods=['GET'])
 def get_egg(year, month):
-    user_id = "9d16f34f-9cf4-47ee-9cf4-3717f42f1e23"
+    user_id = g.user_id
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
 
@@ -28,7 +33,7 @@ def get_egg(year, month):
 @egg_bp.route('/save', methods=['POST'])
 def save_egg():
     data = request.json
-    user_id = data.get('user_id')
+    user_id = g.user_id
     records = data.get('records', [])
 
     if not user_id:

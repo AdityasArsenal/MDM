@@ -4,6 +4,7 @@ from google.auth.transport import requests
 import uuid
 import os
 from db import get_user_by_google_id, insert_user, get_active_subscription
+from auth_session import issue_token
 
 from dotenv import load_dotenv
 
@@ -15,7 +16,7 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/login', methods=['POST'])
 def login():
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
         token = data.get('credential')
         
         if not token:
@@ -46,11 +47,14 @@ def login():
         if not user:
             # Create new user
             user = insert_user(email, name, google_id)
+            if not user:
+                return jsonify({'error': 'Could not create user'}), 500
         
         # Check active subscription
         sub = get_active_subscription(user['id'])
 
         return jsonify({
+            'token': issue_token(user['id']),
             'user': {
                 'id': str(user['id']),
                 'email': user['email'],

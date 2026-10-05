@@ -1,12 +1,17 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
+from auth_session import load_session_user
 from db import get_meal_plans, insert_meal_plan
 from datetime import datetime
 
 meal_bp = Blueprint('meal', __name__)
 
+@meal_bp.before_request
+def require_login():
+    return load_session_user()
+
 @meal_bp.route('/<int:year>/<int:month>', methods=['GET'])
 def get_meals(year, month):
-    user_id = request.args.get('user_id')
+    user_id = g.user_id
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
 
@@ -24,7 +29,7 @@ def get_meals(year, month):
 @meal_bp.route('/save', methods=['POST'])
 def save_meals():
     data = request.json
-    user_id = data.get('user_id')
+    user_id = g.user_id
     meals = data.get('meals', [])
 
     if not user_id:

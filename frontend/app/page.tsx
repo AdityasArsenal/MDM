@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
+import { saveToken } from './utils/api';
 
 declare global {
   interface Window {
@@ -42,6 +43,7 @@ export default function Home() {
 
       if (data.user) {
         localStorage.setItem('user', JSON.stringify(data.user));
+        saveToken(data.token);
         
         if (!data.user.is_subscribed) {
           router.push('/payment');

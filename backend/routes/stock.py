@@ -1,12 +1,17 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
+from auth_session import load_session_user
 from db import get_stock_records, insert_stock, get_meal_plans
 from datetime import datetime
 
 stock_bp = Blueprint('stock', __name__)
 
+@stock_bp.before_request
+def require_login():
+    return load_session_user()
+
 @stock_bp.route('/<int:year>/<int:month>', methods=['GET'])
 def get_stock(year, month):
-    user_id = request.args.get('user_id')
+    user_id = g.user_id
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
 
@@ -32,7 +37,7 @@ def get_stock(year, month):
 @stock_bp.route('/save', methods=['POST'])
 def save_stock():
     data = request.json
-    user_id = data.get('user_id')
+    user_id = g.user_id
     records = data.get('records', [])
     
     if not user_id:
@@ -55,7 +60,7 @@ def save_stock():
 
 @stock_bp.route('/calc/<int:year>/<int:month>', methods=['GET'])
 def get_stock_with_calculations(year, month):
-    user_id = request.args.get('user_id')
+    user_id = g.user_id
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
 

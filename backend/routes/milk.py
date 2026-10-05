@@ -1,11 +1,16 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
+from auth_session import load_session_user
 from db import get_milk_records, insert_milk_record
 
 milk_bp = Blueprint('milk', __name__)
 
+@milk_bp.before_request
+def require_login():
+    return load_session_user()
+
 @milk_bp.route('/<int:year>/<int:month>', methods=['GET'])
 def get_milk(year, month):
-    user_id = request.args.get('user_id')
+    user_id = g.user_id
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
 
@@ -29,7 +34,7 @@ def get_milk(year, month):
 @milk_bp.route('/save', methods=['POST'])
 def save_milk():
     data = request.json
-    user_id = data.get('user_id')
+    user_id = g.user_id
     records = data.get('records', [])
     
     if not user_id:

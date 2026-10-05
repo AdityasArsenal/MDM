@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { exportToPDF } from '@/app/utils/pdf';
+import { authFetch } from '@/app/utils/api';
 import {
   Table,
   TableBody,
@@ -64,7 +65,7 @@ export default function EggPage() {
     
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/egg/${year}/${month}`, {
+      const res = await authFetch(`${BACKEND_URL}/api/egg/${year}/${month}`, {
         headers: { 'ngrok-skip-browser-warning': 'true' }
       });
       
@@ -146,13 +147,13 @@ export default function EggPage() {
           banana_price: bananaPrice,
         }));
 
-      const res = await fetch(`${BACKEND_URL}/api/egg/save`, {
+      const res = await authFetch(`${BACKEND_URL}/api/egg/save`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true'
         },
-        body: JSON.stringify({ user_id: userId, records })
+        body: JSON.stringify({ records })
       });
       
       const responseData = await res.json();

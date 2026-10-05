@@ -1,7 +1,6 @@
 import os
 from flask import Flask
 from flask_cors import CORS
-from config import Config
 from routes.auth import auth_bp
 from routes.meal import meal_bp
 from routes.stock import stock_bp
@@ -18,7 +17,6 @@ logging.getLogger("apscheduler").setLevel(logging.WARNING)
 logging.getLogger("phonepe").setLevel(logging.ERROR)
 
 app = Flask(__name__)
-app.config.from_object(Config)
 
 # Enable CORS for frontend
 CORS(app, resources={r"/api/*": {"origins": "*"}})
