@@ -56,7 +56,7 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false }: MilkTableRowP
   const totalMilk = useMemo(() => calculateTotalMilk(row.milk_open || 0, row.milk_rcpt || 0), [row.milk_open, row.milk_rcpt]);
   const totalRagi = useMemo(() => calculateTotalRagi(row.ragi_open || 0, row.ragi_rcpt || 0), [row.ragi_open, row.ragi_rcpt]);
   const distMilk = useMemo(() => calculateMilkDistribution(row.children || 0), [row.children]);
-  const distRagi = useMemo(() => calculateRagiDistribution(row.children || 0, row.dist_type, row.date), [row.children, row.dist_type, row.date]);
+  const distRagi = useMemo(() => calculateRagiDistribution(row.children || 0, row.dist_type), [row.children, row.dist_type]);
   const closeMilk = useMemo(() => calculateClosingMilk(totalMilk, distMilk), [totalMilk, distMilk]);
   const closeRagi = useMemo(() => calculateClosingRagi(totalRagi, distRagi), [totalRagi, distRagi]);
   const sugar = useMemo(() => calculateSugar(row.children || 0), [row.children]);

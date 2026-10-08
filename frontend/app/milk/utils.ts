@@ -17,8 +17,6 @@ export const getDayName = (dateStr: string) => {
 
 export const isSunday = (dateStr: string) => new Date(dateStr + 'T12:00:00').getDay() === 0;
 
-export const isMonWedFri = (dateStr: string) => [1, 3, 5].includes(new Date(dateStr + 'T12:00:00').getDay());
-
 // Calculation functions
 export const calculateTotalMilk = (milk_open: number, milk_rcpt: number) => {
   return (milk_open || 0) + (milk_rcpt || 0);
@@ -32,10 +30,10 @@ export const calculateMilkDistribution = (children: number) => {
   return (children || 0) * 0.018;
 };
 
-export const calculateRagiDistribution = (children: number, dist_type: string | null, date: string) => {
-  return dist_type === 'milk & ragi' && isMonWedFri(date) 
-    ? (children || 0) * 0.005 
-    : 0;
+// Ragi depends only on the user's choice, never on the day of the week.
+// 'only milk' and not-chosen (null) give 0.
+export const calculateRagiDistribution = (children: number, dist_type: string | null) => {
+  return dist_type === 'milk & ragi' ? (children || 0) * 0.005 : 0;
 };
 
 export const calculateClosingMilk = (totalMilk: number, distMilk: number) => {
@@ -64,7 +62,7 @@ export const recalculateOpeningStock = (rows: MilkRow[], startIdx: number): Milk
       curr.milk_open = calculateClosingMilk(prevTotalMilk, prevDistMilk);
       
       const prevTotalRagi = calculateTotalRagi(prev.ragi_open || 0, prev.ragi_rcpt || 0);
-      const prevDistRagi = calculateRagiDistribution(prev.children || 0, prev.dist_type, prev.date);
+      const prevDistRagi = calculateRagiDistribution(prev.children || 0, prev.dist_type);
       curr.ragi_open = calculateClosingRagi(prevTotalRagi, prevDistRagi);
     }
   }
@@ -79,7 +77,7 @@ export const calculateTotals = (rows: MilkRow[]) => {
     acc.milk_rcpt += r.milk_rcpt || 0;
     acc.ragi_rcpt += r.ragi_rcpt || 0;
     acc.milk_dist += calculateMilkDistribution(r.children || 0);
-    acc.ragi_dist += calculateRagiDistribution(r.children || 0, r.dist_type, r.date);
+    acc.ragi_dist += calculateRagiDistribution(r.children || 0, r.dist_type);
     acc.sugar += calculateSugar(r.children || 0);
     return acc;
   }, { children: 0, milk_rcpt: 0, ragi_rcpt: 0, milk_dist: 0, ragi_dist: 0, sugar: 0 });
