@@ -12,7 +12,8 @@ import {
   TableRow,
 } from '@/app/components/ui/table';
 import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
+import { authFetch } from '../utils/api';
+import { SignedNumberInput } from './SignedNumberInput';
 import { PageFooter } from '@/app/components/PageFooter';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -38,6 +39,41 @@ interface StockRow {
   oil_used: number;
   pulse_used: number;
 }
+
+// Opening stock may be negative; only non-finite values become null
+const openValue = (v: number | null): number | null =>
+  v !== null && Number.isFinite(v) ? v : null;
+// Received stock is never negative or NaN
+const addValue = (v: number): number => (Number.isFinite(v) ? Math.max(0, v) : 0);
+// toFixed(3) that never prints "-0.000" for tiny negative noise
+const fmt = (v: number): string => {
+  const s = (Number.isFinite(v) ? v : 0).toFixed(3);
+  return Number(s) === 0 ? '0.000' : s;
+};
+const num = (v: number | null): number => (v !== null && Number.isFinite(v) ? v : 0);
+
+// Make sure every numeric field is a JSON number in state (a numeric string from the
+// server would otherwise be sent back as a string, or zeroed by addValue)
+const normalizeRow = (r: StockRow): StockRow => {
+  const open = (v: unknown): number | null =>
+    v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v);
+  const n = (v: unknown): number => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  return {
+    ...r,
+    rice_open: open(r.rice_open),
+    wheat_open: open(r.wheat_open),
+    oil_open: open(r.oil_open),
+    pulse_open: open(r.pulse_open),
+    rice_add: n(r.rice_add),
+    wheat_add: n(r.wheat_add),
+    oil_add: n(r.oil_add),
+    pulse_add: n(r.pulse_add),
+    rice_used: n(r.rice_used),
+    wheat_used: n(r.wheat_used),
+    oil_used: n(r.oil_used),
+    pulse_used: n(r.pulse_used),
+  };
+};
 
 export default function Stock() {
   const router = useRouter();
@@ -70,7 +106,7 @@ export default function Stock() {
     
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/stock/calc/${year}/${month}?user_id=${userId}`, {
+      const res = await authFetch(`${BACKEND_URL}/api/stock/calc/${year}/${month}`, {
         headers: { 'ngrok-skip-browser-warning': 'true' }
       });
       
@@ -79,10 +115,11 @@ export default function Stock() {
       }
       
       const data = await res.json();
-      setRows(data);
-    } catch (err: any) {
+      setRows(Array.isArray(data) ? data.map(normalizeRow) : []);
+    } catch (err) {
       console.error('Load error:', err);
-      alert('Error loading data: ' + err.message);
+      setRows([]);
+      alert("Error loading data: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setLoading(false);
     }
@@ -95,7 +132,9 @@ export default function Stock() {
   const handleChange = useCallback((date: string, grade: '1-5' | '6-10', field: string, value: number) => {
     setRows(prev => prev.map(r => {
       if (r.date === date && r.grade === grade) {
-        return { ...r, [field]: isNaN(value) ? 0 : value };
+        let v = Number.isFinite(value) ? value : 0;
+        if (field.endsWith('_add')) v = Math.max(0, v); // received stock is never negative; opening stock may be
+        return { ...r, [field]: v };
       }
       return r;
     }));
@@ -125,36 +164,38 @@ export default function Stock() {
         .map(r => ({
           date: r.date,
           grade: r.grade,
-          rice_add: r.rice_add || 0,
-          wheat_add: r.wheat_add || 0,
-          oil_add: r.oil_add || 0,
-          pulse_add: r.pulse_add || 0,
-          rice_open: r.rice_open,
-          wheat_open: r.wheat_open,
-          oil_open: r.oil_open,
-          pulse_open: r.pulse_open,
+          rice_add: addValue(r.rice_add),
+          wheat_add: addValue(r.wheat_add),
+          oil_add: addValue(r.oil_add),
+          pulse_add: addValue(r.pulse_add),
+          rice_open: openValue(r.rice_open),
+          wheat_open: openValue(r.wheat_open),
+          oil_open: openValue(r.oil_open),
+          pulse_open: openValue(r.pulse_open),
         }));
 
-      const res = await fetch(`${BACKEND_URL}/api/stock/save`, {
+      const res = await authFetch(`${BACKEND_URL}/api/stock/save`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true'
         },
-        body: JSON.stringify({ user_id: userId, records })
+        body: JSON.stringify({ records })
       });
       
-      const responseData = await res.json();
+      // The error body may not be JSON (proxy page, 500 HTML)
+      const responseData = await res.json().catch(() => null);
       
       if (!res.ok) {
-        throw new Error(responseData.error || 'Failed to save');
+        // Backend 400s look like {"error": "Record <i>: <reason>"}
+        throw new Error(responseData?.error || `Failed to save (${res.status})`);
       }
       
       alert('Saved!');
       loadData(); // Reload to get updated calculations
-    } catch (err: any) {
+    } catch (err) {
       console.error('Save error:', err);
-      alert('Error saving: ' + err.message);
+      alert("Error saving: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setSaving(false);
     }
@@ -187,10 +228,10 @@ export default function Stock() {
       
       if (isFirstDay) {
         return {
-          rice: row.rice_open || 0,
-          wheat: row.wheat_open || 0,
-          oil: row.oil_open || 0,
-          pulse: row.pulse_open || 0,
+          rice: num(row.rice_open),
+          wheat: num(row.wheat_open),
+          oil: num(row.oil_open),
+          pulse: num(row.pulse_open),
         };
       } else {
         const currentDate = new Date(date);
@@ -388,69 +429,69 @@ export default function Stock() {
                         <TableCell>1-5</TableCell>
                         {isFirstDay ? (
                           <>
-                            <TableCell><Input type="number" step="0.001" value={row1to5.rice_open || ''} onChange={e => handleChange(date, '1-5', 'rice_open', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                            <TableCell><Input type="number" step="0.001" value={row1to5.wheat_open || ''} onChange={e => handleChange(date, '1-5', 'wheat_open', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                            <TableCell><Input type="number" step="0.001" value={row1to5.oil_open || ''} onChange={e => handleChange(date, '1-5', 'oil_open', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                            <TableCell><Input type="number" step="0.001" value={row1to5.pulse_open || ''} onChange={e => handleChange(date, '1-5', 'pulse_open', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput value={row1to5.rice_open} onValueChange={v => handleChange(date, '1-5', 'rice_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput value={row1to5.wheat_open} onValueChange={v => handleChange(date, '1-5', 'wheat_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput value={row1to5.oil_open} onValueChange={v => handleChange(date, '1-5', 'oil_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput value={row1to5.pulse_open} onValueChange={v => handleChange(date, '1-5', 'pulse_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
                           </>
                         ) : (
                           <>
-                            <TableCell>{opening1to5.rice.toFixed(3)}</TableCell>
-                            <TableCell>{opening1to5.wheat.toFixed(3)}</TableCell>
-                            <TableCell>{opening1to5.oil.toFixed(3)}</TableCell>
-                            <TableCell>{opening1to5.pulse.toFixed(3)}</TableCell>
+                            <TableCell>{fmt(opening1to5.rice)}</TableCell>
+                            <TableCell>{fmt(opening1to5.wheat)}</TableCell>
+                            <TableCell>{fmt(opening1to5.oil)}</TableCell>
+                            <TableCell>{fmt(opening1to5.pulse)}</TableCell>
                           </>
                         )}
-                        <TableCell><Input type="number" step="0.001" value={row1to5.rice_add || ''} onChange={e => handleChange(date, '1-5', 'rice_add', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                        <TableCell><Input type="number" step="0.001" value={row1to5.wheat_add || ''} onChange={e => handleChange(date, '1-5', 'wheat_add', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                        <TableCell><Input type="number" step="0.001" value={row1to5.oil_add || ''} onChange={e => handleChange(date, '1-5', 'oil_add', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                        <TableCell><Input type="number" step="0.001" value={row1to5.pulse_add || ''} onChange={e => handleChange(date, '1-5', 'pulse_add', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                        <TableCell>{totals1to5.rice.toFixed(3)}</TableCell>
-                        <TableCell>{totals1to5.wheat.toFixed(3)}</TableCell>
-                        <TableCell>{totals1to5.oil.toFixed(3)}</TableCell>
-                        <TableCell>{totals1to5.pulse.toFixed(3)}</TableCell>
-                        <TableCell>{row1to5.rice_used.toFixed(3)}</TableCell>
-                        <TableCell>{row1to5.wheat_used.toFixed(3)}</TableCell>
-                        <TableCell>{row1to5.oil_used.toFixed(3)}</TableCell>
-                        <TableCell>{row1to5.pulse_used.toFixed(3)}</TableCell>
-                        <TableCell>{closing1to5.rice.toFixed(3)}</TableCell>
-                        <TableCell>{closing1to5.wheat.toFixed(3)}</TableCell>
-                        <TableCell>{closing1to5.oil.toFixed(3)}</TableCell>
-                        <TableCell>{closing1to5.pulse.toFixed(3)}</TableCell>
+                        <TableCell><SignedNumberInput value={row1to5.rice_add} onValueChange={v => handleChange(date, '1-5', 'rice_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell><SignedNumberInput value={row1to5.wheat_add} onValueChange={v => handleChange(date, '1-5', 'wheat_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell><SignedNumberInput value={row1to5.oil_add} onValueChange={v => handleChange(date, '1-5', 'oil_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell><SignedNumberInput value={row1to5.pulse_add} onValueChange={v => handleChange(date, '1-5', 'pulse_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell>{fmt(totals1to5.rice)}</TableCell>
+                        <TableCell>{fmt(totals1to5.wheat)}</TableCell>
+                        <TableCell>{fmt(totals1to5.oil)}</TableCell>
+                        <TableCell>{fmt(totals1to5.pulse)}</TableCell>
+                        <TableCell>{fmt(row1to5.rice_used)}</TableCell>
+                        <TableCell>{fmt(row1to5.wheat_used)}</TableCell>
+                        <TableCell>{fmt(row1to5.oil_used)}</TableCell>
+                        <TableCell>{fmt(row1to5.pulse_used)}</TableCell>
+                        <TableCell>{fmt(closing1to5.rice)}</TableCell>
+                        <TableCell>{fmt(closing1to5.wheat)}</TableCell>
+                        <TableCell>{fmt(closing1to5.oil)}</TableCell>
+                        <TableCell>{fmt(closing1to5.pulse)}</TableCell>
                       </TableRow>
                       <TableRow className={isSunday ? 'bg-red-50' : ''}>
                         <TableCell>6-10</TableCell>
                         {isFirstDay ? (
                           <>
-                            <TableCell><Input type="number" step="0.001" value={row6to10.rice_open || ''} onChange={e => handleChange(date, '6-10', 'rice_open', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                            <TableCell><Input type="number" step="0.001" value={row6to10.wheat_open || ''} onChange={e => handleChange(date, '6-10', 'wheat_open', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                            <TableCell><Input type="number" step="0.001" value={row6to10.oil_open || ''} onChange={e => handleChange(date, '6-10', 'oil_open', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                            <TableCell><Input type="number" step="0.001" value={row6to10.pulse_open || ''} onChange={e => handleChange(date, '6-10', 'pulse_open', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput value={row6to10.rice_open} onValueChange={v => handleChange(date, '6-10', 'rice_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput value={row6to10.wheat_open} onValueChange={v => handleChange(date, '6-10', 'wheat_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput value={row6to10.oil_open} onValueChange={v => handleChange(date, '6-10', 'oil_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput value={row6to10.pulse_open} onValueChange={v => handleChange(date, '6-10', 'pulse_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
                           </>
                         ) : (
                           <>
-                            <TableCell>{opening6to10.rice.toFixed(3)}</TableCell>
-                            <TableCell>{opening6to10.wheat.toFixed(3)}</TableCell>
-                            <TableCell>{opening6to10.oil.toFixed(3)}</TableCell>
-                            <TableCell>{opening6to10.pulse.toFixed(3)}</TableCell>
+                            <TableCell>{fmt(opening6to10.rice)}</TableCell>
+                            <TableCell>{fmt(opening6to10.wheat)}</TableCell>
+                            <TableCell>{fmt(opening6to10.oil)}</TableCell>
+                            <TableCell>{fmt(opening6to10.pulse)}</TableCell>
                           </>
                         )}
-                        <TableCell><Input type="number" step="0.001" value={row6to10.rice_add || ''} onChange={e => handleChange(date, '6-10', 'rice_add', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                        <TableCell><Input type="number" step="0.001" value={row6to10.wheat_add || ''} onChange={e => handleChange(date, '6-10', 'wheat_add', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                        <TableCell><Input type="number" step="0.001" value={row6to10.oil_add || ''} onChange={e => handleChange(date, '6-10', 'oil_add', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                        <TableCell><Input type="number" step="0.001" value={row6to10.pulse_add || ''} onChange={e => handleChange(date, '6-10', 'pulse_add', e.target.valueAsNumber)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                        <TableCell>{totals6to10.rice.toFixed(3)}</TableCell>
-                        <TableCell>{totals6to10.wheat.toFixed(3)}</TableCell>
-                        <TableCell>{totals6to10.oil.toFixed(3)}</TableCell>
-                        <TableCell>{totals6to10.pulse.toFixed(3)}</TableCell>
-                        <TableCell>{row6to10.rice_used.toFixed(3)}</TableCell>
-                        <TableCell>{row6to10.wheat_used.toFixed(3)}</TableCell>
-                        <TableCell>{row6to10.oil_used.toFixed(3)}</TableCell>
-                        <TableCell>{row6to10.pulse_used.toFixed(3)}</TableCell>
-                        <TableCell>{closing6to10.rice.toFixed(3)}</TableCell>
-                        <TableCell>{closing6to10.wheat.toFixed(3)}</TableCell>
-                        <TableCell>{closing6to10.oil.toFixed(3)}</TableCell>
-                        <TableCell>{closing6to10.pulse.toFixed(3)}</TableCell>
+                        <TableCell><SignedNumberInput value={row6to10.rice_add} onValueChange={v => handleChange(date, '6-10', 'rice_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell><SignedNumberInput value={row6to10.wheat_add} onValueChange={v => handleChange(date, '6-10', 'wheat_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell><SignedNumberInput value={row6to10.oil_add} onValueChange={v => handleChange(date, '6-10', 'oil_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell><SignedNumberInput value={row6to10.pulse_add} onValueChange={v => handleChange(date, '6-10', 'pulse_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell>{fmt(totals6to10.rice)}</TableCell>
+                        <TableCell>{fmt(totals6to10.wheat)}</TableCell>
+                        <TableCell>{fmt(totals6to10.oil)}</TableCell>
+                        <TableCell>{fmt(totals6to10.pulse)}</TableCell>
+                        <TableCell>{fmt(row6to10.rice_used)}</TableCell>
+                        <TableCell>{fmt(row6to10.wheat_used)}</TableCell>
+                        <TableCell>{fmt(row6to10.oil_used)}</TableCell>
+                        <TableCell>{fmt(row6to10.pulse_used)}</TableCell>
+                        <TableCell>{fmt(closing6to10.rice)}</TableCell>
+                        <TableCell>{fmt(closing6to10.wheat)}</TableCell>
+                        <TableCell>{fmt(closing6to10.oil)}</TableCell>
+                        <TableCell>{fmt(closing6to10.pulse)}</TableCell>
                       </TableRow>
                     </React.Fragment>
                   );
