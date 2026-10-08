@@ -114,6 +114,8 @@ export default function EggPage() {
     loadData();
   }, [loadData]);
 
+  const [missingDates, setMissingDates] = useState<string[]>([]);
+
   const handleChange = useCallback((idx: number, field: keyof EggRecord, value: any) => {
     setRows(prev =>
       prev.map((row, i) =>
@@ -130,7 +132,20 @@ export default function EggPage() {
     );
   }, []);
 
+  const isTouched = (r: EggRecord) => r.egg_m > 0 || r.egg_f > 0 || r.banana_m > 0 || r.banana_f > 0;
+
   const saveData = async () => {
+    // A row with quantities needs a payer; block the save and list those dates
+    const missing = rows.filter(r => isTouched(r) && !r.payer);
+    setMissingDates(missing.map(r => r.date));
+    if (missing.length > 0) {
+      const names = missing.map(r => {
+        const [y, m, d] = r.date.split('-').map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      });
+      alert('Choose APF or GOV for: ' + names.join(', '));
+      return;
+    }
     setSaving(true);
     try {
       // Only send records that have data (payer selected or any quantity entered)
@@ -351,6 +366,7 @@ export default function EggPage() {
                     index={idx}
                     eggPrice={eggPrice}
                     bananaPrice={bananaPrice}
+                    payerMissing={missingDates.includes(r.date) && isTouched(r) && !r.payer}
                     onChange={handleChange}
                   />
                 ))}
