@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, g
 from auth_session import load_session_user
 from db import get_stock_records, insert_stock, get_meal_plans
 from datetime import datetime
+import math
 
 stock_bp = Blueprint('stock', __name__)
 
@@ -34,25 +35,75 @@ def get_stock(year, month):
 
     return jsonify(records or [])
 
+ADD_FIELDS = ['rice_add', 'wheat_add', 'oil_add', 'pulse_add']
+OPEN_FIELDS = ['rice_open', 'wheat_open', 'oil_open', 'pulse_open']
+
+
+def _is_number(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+
+
+def validate_record(r):
+    """Return an error string for an invalid record, or None if it is valid."""
+    if not isinstance(r, dict):
+        return 'must be an object'
+
+    date = r.get('date')
+    if not isinstance(date, str):
+        return 'date is required (YYYY-MM-DD)'
+    try:
+        datetime.strptime(date, '%Y-%m-%d')
+    except ValueError:
+        return 'date must be a valid YYYY-MM-DD date'
+
+    grade = r.get('grade')
+    if not isinstance(grade, str) or not grade.strip():
+        return 'grade is required'
+
+    for f in ADD_FIELDS:
+        v = r.get(f, 0)
+        if not _is_number(v):
+            return f'{f} must be a finite number'
+        if v < 0:
+            return f'{f} must be >= 0'
+
+    # Teachers buy items out of pocket and record them as used with no stock left, so opening stock may be negative.
+    for f in OPEN_FIELDS:
+        v = r.get(f)
+        if v is not None and not _is_number(v):
+            return f'{f} must be a finite number'
+
+    return None
+
+
 @stock_bp.route('/save', methods=['POST'])
 def save_stock():
-    data = request.json
     user_id = g.user_id
-    records = data.get('records', [])
-    
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Request body must be a JSON object'}), 400
+    records = data.get('records', [])
+    if not isinstance(records, list):
+        return jsonify({'error': 'records must be a list'}), 400
+
+    for i, r in enumerate(records):
+        err = validate_record(r)
+        if err:
+            return jsonify({'error': f'Record {i}: {err}'}), 400
 
     try:
         for r in records:
             insert_stock(
                 user_id, r['date'], r['grade'],
-                r.get('rice_add', 0), r.get('wheat_add', 0), 
+                r.get('rice_add', 0), r.get('wheat_add', 0),
                 r.get('oil_add', 0), r.get('pulse_add', 0),
-                r.get('rice_open'), r.get('wheat_open'), 
+                r.get('rice_open'), r.get('wheat_open'),
                 r.get('oil_open'), r.get('pulse_open')
             )
-            
+
         return jsonify({'status': 'success'})
     except Exception as e:
         print(f"Error saving stock: {e}")
@@ -64,8 +115,12 @@ def get_stock_with_calculations(year, month):
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
 
-    stock_records = get_stock_records(user_id, year, month)
-    meal_plans = get_meal_plans(user_id, year, month)
+    try:
+        stock_records = get_stock_records(user_id, year, month) or []
+        meal_plans = get_meal_plans(user_id, year, month) or []
+    except Exception as e:
+        print(f"Error loading stock calc data: {e}")
+        return jsonify({'error': 'Failed to load stock data'}), 500
 
     # Create lookup maps
     stock_lookup = {}
