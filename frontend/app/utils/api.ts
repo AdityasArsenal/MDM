@@ -42,5 +42,10 @@ export async function authFetch(url: string, init: RequestInit = {}): Promise<Re
     window.location.href = '/';
   }
 
+  // No active subscription: send the user to the payment page
+  if (res.status === 402 && typeof window !== 'undefined') {
+    window.location.href = '/payment';
+  }
+
   return res;
 }

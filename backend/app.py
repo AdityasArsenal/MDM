@@ -8,6 +8,7 @@ from routes.milk import milk_bp
 from routes.egg import egg_bp
 from routes.pay import pay_bp
 from routes.sub import sub_bp
+from auth_session import enforce_subscription
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -17,6 +18,9 @@ logging.getLogger("apscheduler").setLevel(logging.WARNING)
 logging.getLogger("phonepe").setLevel(logging.ERROR)
 
 app = Flask(__name__)
+
+# Data routes need an active subscription (auth, pay and sub routes do not)
+app.before_request(enforce_subscription)
 
 # Enable CORS for frontend
 CORS(app, resources={r"/api/*": {"origins": "*"}})

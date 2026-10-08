@@ -11,13 +11,17 @@ ENVIRONMENT VARIABLES REQUIRED:
   (generate with: openssl rand -hex 32)
 """
 
+import logging
 import os
+import time
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 import jwt
 from dotenv import load_dotenv
 from flask import g, jsonify, request
+
+from db import check_active_subscription
 
 load_dotenv()
 
@@ -27,6 +31,15 @@ if not JWT_SECRET:
 
 ALGORITHM = "HS256"
 TOKEN_TTL = timedelta(days=7)
+
+logger = logging.getLogger(__name__)
+
+# Subscription enforcement for the data routes. Set ENFORCE_SUBSCRIPTION=false
+# in .env to turn it off for local development (default: on).
+ENFORCE_SUBSCRIPTION = os.getenv("ENFORCE_SUBSCRIPTION", "true").strip().lower() != "false"
+PAID_PREFIXES = ("/api/egg/", "/api/meal/", "/api/milk/", "/api/stock/")
+PAID_CACHE_SECONDS = 60
+_paid_until = {}  # user_id -> time.monotonic() until which the "paid" answer is trusted
 
 
 def issue_token(user_id):
@@ -68,3 +81,41 @@ def login_required(view):
             return error
         return view(*args, **kwargs)
     return wrapper
+
+
+def enforce_subscription():
+    """
+    App-level before_request hook. The data routes (egg, meal, milk, stock) need a
+    valid session AND an active subscription. Auth, pay and sub routes are not
+    gated, so an unpaid user can still log in and pay.
+    Returns 402 when there is no active subscription, 503 when it cannot be checked.
+    """
+    if not ENFORCE_SUBSCRIPTION or request.method == "OPTIONS":
+        return None
+    if not request.path.startswith(PAID_PREFIXES):
+        return None
+
+    error = load_session_user()
+    if error:
+        return error
+
+    user_id = g.user_id
+    now = time.monotonic()
+    if _paid_until.get(user_id, 0) > now:
+        return None
+
+    try:
+        active = check_active_subscription(user_id)
+    except Exception as e:
+        # Fail closed: do not give access when the check itself fails
+        logger.error("Subscription check failed: %s", type(e).__name__)
+        return jsonify({"error": "Could not verify subscription"}), 503
+
+    if not active:
+        return jsonify({"error": "Subscription required", "code": "subscription_required"}), 402
+
+    # Only "paid" answers are cached, so a user who just paid is never held back
+    if len(_paid_until) > 10000:
+        _paid_until.clear()
+    _paid_until[user_id] = now + PAID_CACHE_SECONDS
+    return None
