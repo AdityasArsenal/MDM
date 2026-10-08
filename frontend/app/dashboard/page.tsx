@@ -6,6 +6,7 @@ import { SheetSelector } from '@/app/components/SheetSelector';
 import { MonthYearPicker } from '@/app/components/MonthYearPicker';
 import { Button } from '@/app/components/ui/button';
 import { AppHeader } from '@/app/components/AppHeader';
+import { authFetch } from '@/app/utils/api';
 
 const sheets = [
   { name: 'meals', displayName: 'MDM ದೈನಂದಿನ ದಾಸ್ತಾನು ನಿರ್ವಹಣಾ ವಹಿ (Meal Planning)', path: '/meals' },
@@ -31,14 +32,13 @@ export default function Dashboard() {
     setUserName(userData.name || userData.email || 'User');
 
     // Check subscription status on every dashboard visit
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/sub/check?user_id=${userData.id}`)
-      .then(res => res.json())
-      .then(data => {
-        if (!data.has_active_subscription) {
+    authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/sub/check`)
+      .then(async res => {
+        // Only redirect on a clear "no subscription" answer. 401 is handled by authFetch.
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        if (data && data.has_active_subscription === false) {
           router.push('/payment');
-        }
-        else{
-          console.log("sub is ac")
         }
       })
       .catch(() => {
