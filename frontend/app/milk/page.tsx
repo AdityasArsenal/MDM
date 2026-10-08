@@ -85,7 +85,7 @@ export default function Milk() {
           ragi_open: Number(existing.ragi_open) || 0,
           milk_rcpt: Number(existing.milk_rcpt) || 0,
           ragi_rcpt: Number(existing.ragi_rcpt) || 0,
-          dist_type: existing.dist_type || 'milk & ragi'
+          dist_type: existing.dist_type === 'milk & ragi' || existing.dist_type === 'only milk' ? existing.dist_type : null
         } : {
           id: day,
           date: dateStr,
@@ -94,11 +94,12 @@ export default function Milk() {
           ragi_open: 0,
           milk_rcpt: 0,
           ragi_rcpt: 0,
-          dist_type: 'milk & ragi'
+          dist_type: null
         });
       }
       
-      setRows(allDays);
+      // Untouched days are not saved, so carry the opening stock forward from day 1
+      setRows(recalculateOpeningStock(allDays, 1));
     } catch (err: any) {
       console.error('Load error:', err);
       alert('Error loading data: ' + err.message);
@@ -143,14 +144,35 @@ export default function Milk() {
     setSaving(true);
     try {
       const clean = (n: number) => (Number.isFinite(n) && Math.abs(n) >= 1e-9 ? n : 0);
-      const records = rows.map(r => ({
+
+      // A day is sent only if the user did something on it (day 1: typed opening stock counts)
+      const isTouched = (r: MilkRow, idx: number) =>
+        r.children > 0 || r.milk_rcpt > 0 || r.ragi_rcpt > 0 || r.dist_type !== null ||
+        (idx === 0 && (r.milk_open !== 0 || r.ragi_open !== 0));
+      const touched = rows.filter(isTouched);
+
+      // Days with children need a distribution choice
+      const missing = touched.filter(r => r.children > 0 && !r.dist_type);
+      if (missing.length > 0) {
+        const dates = missing
+          .map(r => new Date(r.date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }))
+          .join(', ');
+        alert(`Choose milk & ragi or only milk for: ${dates}`);
+        return;
+      }
+      if (touched.length === 0) {
+        alert('Nothing to save: no day has been filled in.');
+        return;
+      }
+
+      const records = touched.map(r => ({
         date: r.date,
         children: Math.max(0, Math.trunc(clean(r.children))),
         milk_open: clean(r.milk_open),
         ragi_open: clean(r.ragi_open),
         milk_rcpt: clean(r.milk_rcpt),
         ragi_rcpt: clean(r.ragi_rcpt),
-        dist_type: r.dist_type
+        dist_type: r.dist_type === 'milk & ragi' || r.dist_type === 'only milk' ? r.dist_type : null
       }));
 
       console.log('Saving data:', { records: records.slice(0, 2) }); // Log first 2 records

@@ -6,7 +6,7 @@ export interface MilkRow {
   ragi_open: number;
   milk_rcpt: number;
   ragi_rcpt: number;
-  dist_type: 'milk & ragi' | 'only milk';
+  dist_type: 'milk & ragi' | 'only milk' | null; // null = not chosen yet
 }
 
 // Date helper functions
@@ -32,7 +32,7 @@ export const calculateMilkDistribution = (children: number) => {
   return (children || 0) * 0.018;
 };
 
-export const calculateRagiDistribution = (children: number, dist_type: string, date: string) => {
+export const calculateRagiDistribution = (children: number, dist_type: string | null, date: string) => {
   return dist_type === 'milk & ragi' && isMonWedFri(date) 
     ? (children || 0) * 0.005 
     : 0;
