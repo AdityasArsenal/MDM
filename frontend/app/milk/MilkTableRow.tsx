@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { TableCell, TableRow } from '@/app/components/ui/table';
 import { Input } from '@/app/components/ui/input';
 import {
@@ -11,8 +11,39 @@ import {
   calculateRagiDistribution,
   calculateClosingMilk,
   calculateClosingRagi,
-  calculateSugar
+  calculateSugar,
+  fmt
 } from './utils';
+
+// Day-1 opening stock can be negative, so it is edited as text: partial input such as
+// "-", "-.", "1." or ".5" must survive while typing. The parent only gets finite numbers.
+const DRAFT_PATTERN = /^-?\d*\.?\d*$/;
+
+const DraftNumberInput = ({ value, onCommit }: { value: number; onCommit: (n: number) => void }) => {
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const handleChange = (text: string) => {
+    if (!DRAFT_PATTERN.test(text)) return;
+    setDraft(text);
+    if (text === '') {
+      onCommit(0);
+      return;
+    }
+    const n = Number(text);
+    if (Number.isFinite(n)) onCommit(n);
+  };
+
+  return (
+    <Input
+      type="text"
+      inputMode="decimal"
+      value={draft ?? String(value || 0)}
+      onChange={e => handleChange(e.target.value)}
+      onBlur={() => setDraft(null)}
+      className="w-20"
+    />
+  );
+};
 
 interface MilkTableRowProps {
   row: MilkRow;
@@ -63,34 +94,24 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false }: MilkTableRowP
           type="number"
           value={row.children || 0}
           onChange={e => onHandleChange(row.id, 'children', e.target.valueAsNumber || 0)}
+          step="1"
+          min="0"
           className="w-20"
           disabled={sunday}
         />
       </TableCell>
       <TableCell>
         {isFirstDay ? (
-          <Input
-            type="number"
-            value={row.milk_open || 0}
-            onChange={e => onHandleChange(row.id, 'milk_open', e.target.valueAsNumber || 0)}
-            className="w-20"
-            step="0.001"
-          />
+          <DraftNumberInput value={row.milk_open} onCommit={n => onHandleChange(row.id, 'milk_open', n)} />
         ) : (
-          (row.milk_open || 0).toFixed(3)
+          fmt((row.milk_open || 0))
         )}
       </TableCell>
       <TableCell>
         {isFirstDay ? (
-          <Input
-            type="number"
-            value={row.ragi_open || 0}
-            onChange={e => onHandleChange(row.id, 'ragi_open', e.target.valueAsNumber || 0)}
-            className="w-20"
-            step="0.001"
-          />
+          <DraftNumberInput value={row.ragi_open} onCommit={n => onHandleChange(row.id, 'ragi_open', n)} />
         ) : (
-          (row.ragi_open || 0).toFixed(3)
+          fmt((row.ragi_open || 0))
         )}
       </TableCell>
       <TableCell>
@@ -109,12 +130,12 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false }: MilkTableRowP
           className="w-20"
         />
       </TableCell>
-      <TableCell>{totalMilk.toFixed(3)}</TableCell>
-      <TableCell>{totalRagi.toFixed(3)}</TableCell>
+      <TableCell>{fmt(totalMilk)}</TableCell>
+      <TableCell>{fmt(totalRagi)}</TableCell>
       <TableCell>{distMilk.toFixed(3)}</TableCell>
       <TableCell>{distRagi.toFixed(3)}</TableCell>
-      <TableCell>{closeMilk.toFixed(3)}</TableCell>
-      <TableCell>{closeRagi.toFixed(3)}</TableCell>
+      <TableCell>{fmt(closeMilk)}</TableCell>
+      <TableCell>{fmt(closeRagi)}</TableCell>
       <TableCell>{sugar.toFixed(2)}</TableCell>
     </TableRow>
   );
