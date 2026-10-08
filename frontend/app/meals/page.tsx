@@ -38,9 +38,11 @@ interface MealTableRowProps {
   onInputChange: (id: number, field: 'cnt_1to5' | 'cnt_6to10', value: number) => void;
   onMealTypeChange: (id: number, mealType: MealType) => void;
   onPulsesToggle: (id: number, include: boolean) => void;
+  missingMeal: boolean;
+  missingPulses: boolean;
 }
 
-const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggle }: MealTableRowProps) => {
+const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggle, missingMeal, missingPulses }: MealTableRowProps) => {
   // Task 5: Prevent state update storms - use refs to batch rapid input changes
   const inputTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -74,8 +76,12 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
       onInputChange(row.id, field, finalValue);
     }, 50); // 50ms is imperceptible but batches rapid keystrokes
     
-    // Update input display immediately for responsive feel
-    e.target.value = finalValue.toString();
+    // Never show a literal 0: zero is an empty box (placeholder "0"). Otherwise show the cleaned whole number.
+    if (finalValue === 0) {
+      e.target.value = '';
+    } else if (e.target.value !== finalValue.toString()) {
+      e.target.value = finalValue.toString();
+    }
   }, [row.id, onInputChange]);
 
   return (
@@ -86,7 +92,7 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
         {formatDate(row.date)}
       </TableCell>
       <TableCell>
-        <div className="flex flex-col gap-1">
+        <div className={`flex flex-col gap-1 ${missingMeal ? 'ring-2 ring-red-500 rounded p-0.5' : ''}`}>
           <button
             onClick={() => onMealTypeChange(row.id, 'rice')}
             disabled={isRowSunday}
@@ -112,29 +118,29 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
         </div>
       </TableCell>
       <TableCell>
-        <div className="flex flex-col gap-1">
+        <div className={`flex flex-col gap-1 ${missingPulses ? 'ring-2 ring-red-500 rounded p-0.5' : ''}`}>
           <button
             onClick={() => onPulsesToggle(row.id, true)}
             disabled={isRowSunday}
             className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
-              row.has_pulses
+              row.has_pulses === true
                 ? 'bg-green-500 text-white font-semibold'
                 : 'bg-gray-200 text-black hover:bg-gray-300'
             } ${isRowSunday ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {row.has_pulses && <span className="text-white">✓</span>}
+            {row.has_pulses === true && <span className="text-white">✓</span>}
             <span>Yes</span>
           </button>
           <button
             onClick={() => onPulsesToggle(row.id, false)}
             disabled={isRowSunday}
             className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
-              !row.has_pulses
+              row.has_pulses === false
                 ? 'bg-red-500 text-white font-semibold'
                 : 'bg-gray-200 text-black hover:bg-gray-300'
             } ${isRowSunday ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {!row.has_pulses && <span className="text-white">✓</span>}
+            {row.has_pulses === false && <span className="text-white">✓</span>}
             <span>No</span>
           </button>
         </div>
@@ -142,7 +148,7 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
       <TableCell>
         <Input
           type="number"
-          defaultValue={Number.isFinite(row.cnt_1to5) ? row.cnt_1to5 : 0}
+          defaultValue={row.cnt_1to5 > 0 ? row.cnt_1to5 : ''}
           onChange={e => handleInputChange(e, 'cnt_1to5')}
           className="w-full text-black"
           placeholder="0"
@@ -157,7 +163,7 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
       <TableCell>
         <Input
           type="number"
-          defaultValue={Number.isFinite(row.cnt_6to10) ? row.cnt_6to10 : 0}
+          defaultValue={row.cnt_6to10 > 0 ? row.cnt_6to10 : ''}
           onChange={e => handleInputChange(e, 'cnt_6to10')}
           className="w-20 text-black"
           placeholder="0"
@@ -188,6 +194,8 @@ export default function Meals() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [zoom, setZoom] = useState(1);
+  // Rows (by id) that were blocked on save for a missing choice
+  const [blockedIds, setBlockedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -210,6 +218,7 @@ export default function Meals() {
     
     setLoading(true);
     setError('');
+    setBlockedIds(new Set());
     try {
       const res = await authFetch(`${BACKEND_URL}/api/meal/${year}/${month}`, {
         headers: { 'ngrok-skip-browser-warning': 'true' }
@@ -231,14 +240,14 @@ export default function Meals() {
           cnt_1to5: existing.cnt_1to5 || 0,
           cnt_6to10: existing.cnt_6to10 || 0,
           meal_type: existing.meal_type,
-          has_pulses: existing.has_pulses || false
+          has_pulses: typeof existing.has_pulses === 'boolean' ? existing.has_pulses : null
         } : {
           id: day,
           date: dateStr,
           cnt_1to5: 0,
           cnt_6to10: 0,
           meal_type: null,
-          has_pulses: false
+          has_pulses: null
         });
       }
       
@@ -255,18 +264,31 @@ export default function Meals() {
   }, [loadMeals]);
 
   const saveMeals = async () => {
-    setSaving(true);
     setError('');
+
+    // A row is touched if any choice was made or any count entered
+    const touched = meals.filter(m => m.meal_type !== null || m.has_pulses !== null || m.cnt_1to5 > 0 || m.cnt_6to10 > 0);
+    const incomplete = touched.filter(m => m.meal_type === null || m.has_pulses === null);
+    if (incomplete.length > 0) {
+      setBlockedIds(new Set(incomplete.map(m => m.id)));
+      const labels = incomplete.map(m => {
+        const [y, mo, d] = m.date.split('-').map(Number);
+        return new Date(y, mo - 1, d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      });
+      setError(`Choose meal type and pulses for: ${labels.join(', ')}`);
+      return;
+    }
+    setBlockedIds(new Set());
+
+    setSaving(true);
     try {
-      const mealsToSave = meals
-        .filter(m => m.meal_type !== null)
-        .map(m => ({
-          date: m.date,
-          cnt_1to5: Number.isInteger(m.cnt_1to5) && m.cnt_1to5 > 0 ? m.cnt_1to5 : 0,
-          cnt_6to10: Number.isInteger(m.cnt_6to10) && m.cnt_6to10 > 0 ? m.cnt_6to10 : 0,
-          meal_type: m.meal_type,
-          has_pulses: m.has_pulses || false
-        }));
+      const mealsToSave = touched.map(m => ({
+        date: m.date,
+        cnt_1to5: Number.isInteger(m.cnt_1to5) && m.cnt_1to5 > 0 ? m.cnt_1to5 : 0,
+        cnt_6to10: Number.isInteger(m.cnt_6to10) && m.cnt_6to10 > 0 ? m.cnt_6to10 : 0,
+        meal_type: m.meal_type as 'rice' | 'wheat',
+        has_pulses: m.has_pulses === true
+      }));
 
       console.log('Saving meals:', { records: mealsToSave });
 
@@ -455,6 +477,8 @@ export default function Meals() {
                     onInputChange={handleInputChange}
                     onMealTypeChange={handleMealTypeChange}
                     onPulsesToggle={handlePulsesToggle}
+                    missingMeal={blockedIds.has(row.id) && row.meal_type === null}
+                    missingPulses={blockedIds.has(row.id) && row.has_pulses === null}
                   />
                 ))}
               </TableBody>
