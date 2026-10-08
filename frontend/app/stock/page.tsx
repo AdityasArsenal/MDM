@@ -75,6 +75,14 @@ const normalizeRow = (r: StockRow): StockRow => {
   };
 };
 
+interface RatesInfo {
+  source: 'saved' | 'inherited' | 'none';
+  inherited_from: { year: number; month: number } | null;
+}
+
+const monthLabel = (y: number, m: number): string =>
+  `${new Date(y, m - 1).toLocaleString('default', { month: 'long' })} ${y}`;
+
 export default function Stock() {
   const router = useRouter();
   const printRef = useRef<HTMLDivElement>(null);
@@ -82,6 +90,7 @@ export default function Stock() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [rows, setRows] = useState<StockRow[]>([]);
+  const [ratesInfo, setRatesInfo] = useState<RatesInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -110,15 +119,27 @@ export default function Stock() {
         headers: { 'ngrok-skip-browser-warning': 'true' }
       });
       
+      // The body may not be JSON (proxy page, 500 HTML)
+      const body = await res.json().catch(() => null);
+
       if (!res.ok) {
-        throw new Error(`Failed to load data: ${res.status}`);
+        throw new Error(body?.error || `Failed to load data: ${res.status}`);
       }
-      
-      const data = await res.json();
-      setRows(Array.isArray(data) ? data.map(normalizeRow) : []);
+
+      // New shape: { rates, rows }. An old backend returns a plain array.
+      const list = Array.isArray(body) ? body : body?.rows;
+      setRows(Array.isArray(list) ? list.map(normalizeRow) : []);
+      const rates = Array.isArray(body) ? null : body?.rates;
+      const source = rates?.source;
+      setRatesInfo(
+        source === 'none' || source === 'inherited'
+          ? { source, inherited_from: rates.inherited_from ?? null }
+          : { source: 'saved', inherited_from: null }
+      );
     } catch (err) {
       console.error('Load error:', err);
       setRows([]);
+      setRatesInfo(null);
       alert("Error loading data: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setLoading(false);
@@ -349,6 +370,25 @@ export default function Stock() {
           <Button onClick={() => setZoom(z => Math.min(2, z + 0.1))}>+</Button>
         </div>
 
+        {/* Outside printRef, so it is not part of the PDF */}
+        {!loading && ratesInfo?.source === 'none' && (
+          <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-orange-300 bg-orange-100 p-3 text-sm text-orange-900">
+            <span className="flex-1">
+              Rates are not set for this month. Go to the Meal page and set the rates; stock usage shows 0 until then.
+            </span>
+            <Button variant="outline" onClick={() => router.push('/meals')}>Go to Meal page</Button>
+          </div>
+        )}
+        {!loading && ratesInfo?.source === 'inherited' && (
+          <div className="mb-2 rounded-md border border-amber-300 bg-amber-100 p-3 text-sm text-amber-900">
+            Meal rates for {monthLabel(year, month)} are not saved yet. Stock usage uses{' '}
+            {ratesInfo.inherited_from
+              ? monthLabel(ratesInfo.inherited_from.year, ratesInfo.inherited_from.month)
+              : 'an earlier month'}
+            &apos;s rates. Set rates on the Meal page to confirm them.
+          </div>
+        )}
+
         {loading ? (
           <div className="text-center p-8">Loading...</div>
         ) : (
@@ -379,10 +419,10 @@ export default function Stock() {
                   <TableHead></TableHead>
                   {Array(5).fill(0).map((_, i) => (
                     <React.Fragment key={i}>
-                      <TableHead className="min-w-[120px] text-center">ಅಕ್ಕಿ</TableHead>
-                      <TableHead className="min-w-[120px] text-center">ಗೋಧಿ</TableHead>
-                      <TableHead className="min-w-[120px] text-center">ಎಣ್ಣೆ</TableHead>
-                      <TableHead className="min-w-[120px] text-center">ಬೇಳೆ</TableHead>
+                      <TableHead className="min-w-[120px] text-center">ಅಕ್ಕಿ (kg)</TableHead>
+                      <TableHead className="min-w-[120px] text-center">ಗೋಧಿ (kg)</TableHead>
+                      <TableHead className="min-w-[120px] text-center">ಎಣ್ಣೆ (kg)</TableHead>
+                      <TableHead className="min-w-[120px] text-center">ಬೇಳೆ (kg)</TableHead>
                     </React.Fragment>
                   ))}
                 </TableRow>
