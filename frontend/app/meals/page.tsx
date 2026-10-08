@@ -95,23 +95,21 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
         <div className={`flex flex-col gap-1 ${missingMeal ? 'ring-2 ring-red-500 rounded p-0.5' : ''}`}>
           <button
             onClick={() => onMealTypeChange(row.id, 'rice')}
-            disabled={isRowSunday}
             className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
               row.meal_type === 'rice'
                 ? 'bg-blue-500 text-white font-semibold'
                 : 'bg-gray-200 text-black hover:bg-gray-300'
-            } ${isRowSunday ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            }`}>
             {row.meal_type === 'rice' && <span className="text-white">✓</span>}
             <span>ಅಕ್ಕಿ</span>
           </button>
           <button
             onClick={() => onMealTypeChange(row.id, 'wheat')}
-            disabled={isRowSunday}
             className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
               row.meal_type === 'wheat'
                 ? 'bg-orange-500 text-white font-semibold'
                 : 'bg-gray-200 text-black hover:bg-gray-300'
-            } ${isRowSunday ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            }`}>
             {row.meal_type === 'wheat' && <span className="text-white">✓</span>}
             <span>ಗೋಧಿ</span>
           </button>
@@ -121,24 +119,22 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
         <div className={`flex flex-col gap-1 ${missingPulses ? 'ring-2 ring-red-500 rounded p-0.5' : ''}`}>
           <button
             onClick={() => onPulsesToggle(row.id, true)}
-            disabled={isRowSunday}
             className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
               row.has_pulses === true
                 ? 'bg-green-500 text-white font-semibold'
                 : 'bg-gray-200 text-black hover:bg-gray-300'
-            } ${isRowSunday ? 'opacity-50 cursor-not-allowed' : ''}`}
+            }`}
           >
             {row.has_pulses === true && <span className="text-white">✓</span>}
             <span>Yes</span>
           </button>
           <button
             onClick={() => onPulsesToggle(row.id, false)}
-            disabled={isRowSunday}
             className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
               row.has_pulses === false
                 ? 'bg-red-500 text-white font-semibold'
                 : 'bg-gray-200 text-black hover:bg-gray-300'
-            } ${isRowSunday ? 'opacity-50 cursor-not-allowed' : ''}`}
+            }`}
           >
             {row.has_pulses === false && <span className="text-white">✓</span>}
             <span>No</span>
@@ -152,14 +148,13 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
           onChange={e => handleInputChange(e, 'cnt_1to5')}
           className="w-full text-black"
           placeholder="0"
-          disabled={isRowSunday}
         />
       </TableCell>
       <TableCell>{(row.meal_type ? c1.rice : 0).toFixed(3)}</TableCell>
       <TableCell>{(row.meal_type ? c1.wheat : 0).toFixed(3)}</TableCell>
       <TableCell>{(row.meal_type ? c1.oil : 0).toFixed(3)}</TableCell>
       <TableCell>{(row.meal_type ? c1.pulses : 0).toFixed(3)}</TableCell>
-      <TableCell className="border-r bg-blue-50">{(row.meal_type ? c1.sadilvaru : 0).toFixed(3)}</TableCell>
+      <TableCell className="border-r">{(row.meal_type ? c1.sadilvaru : 0).toFixed(3)}</TableCell>
       <TableCell>
         <Input
           type="number"
@@ -167,14 +162,13 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
           onChange={e => handleInputChange(e, 'cnt_6to10')}
           className="w-20 text-black"
           placeholder="0"
-          disabled={isRowSunday}
         />
       </TableCell>
       <TableCell>{(row.meal_type ? c2.rice : 0).toFixed(3)}</TableCell>
       <TableCell>{(row.meal_type ? c2.wheat : 0).toFixed(3)}</TableCell>
       <TableCell>{(row.meal_type ? c2.oil : 0).toFixed(3)}</TableCell>
       <TableCell>{(row.meal_type ? c2.pulses : 0).toFixed(3)}</TableCell>
-      <TableCell className="border-r bg-blue-50">{(row.meal_type ? c2.sadilvaru : 0).toFixed(3)}</TableCell>
+      <TableCell className="border-r">{(row.meal_type ? c2.sadilvaru : 0).toFixed(3)}</TableCell>
       <TableCell className="font-medium text-center text-black">{(row.meal_type ? totalSadilvaru : 0).toFixed(3)}</TableCell>
       <TableCell className="font-medium text-center text-black">{totalChildren}</TableCell>
     </TableRow>
@@ -192,7 +186,6 @@ export default function Meals() {
   const [meals, setMeals] = useState<MealRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
   const [zoom, setZoom] = useState(1);
   // Rows (by id) that were blocked on save for a missing choice
   const [blockedIds, setBlockedIds] = useState<Set<number>>(new Set());
@@ -217,7 +210,6 @@ export default function Meals() {
     if (!userId) return;
     
     setLoading(true);
-    setError('');
     setBlockedIds(new Set());
     try {
       const res = await authFetch(`${BACKEND_URL}/api/meal/${year}/${month}`, {
@@ -252,8 +244,8 @@ export default function Meals() {
       }
       
       setMeals(allDays);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      alert('Error loading data: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setLoading(false);
     }
@@ -264,7 +256,6 @@ export default function Meals() {
   }, [loadMeals]);
 
   const saveMeals = async () => {
-    setError('');
 
     // A row is touched if any choice was made or any count entered
     const touched = meals.filter(m => m.meal_type !== null || m.has_pulses !== null || m.cnt_1to5 > 0 || m.cnt_6to10 > 0);
@@ -275,7 +266,7 @@ export default function Meals() {
         const [y, mo, d] = m.date.split('-').map(Number);
         return new Date(y, mo - 1, d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
       });
-      setError(`Choose meal type and pulses for: ${labels.join(', ')}`);
+      alert(`Choose meal type and pulses for: ${labels.join(', ')}`);
       return;
     }
     setBlockedIds(new Set());
@@ -309,9 +300,9 @@ export default function Meals() {
       }
       
       alert('Saved successfully!');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Save error:', err);
-      setError(err.message);
+      alert('Error saving: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setSaving(false);
     }
@@ -404,7 +395,6 @@ export default function Meals() {
               ))}
             </select>
           </div>
-          {error && <div className="p-2 bg-red-50 text-red-600 rounded mb-4 text-sm">{error}</div>}
 
           <div className="flex gap-2">
             <Button onClick={saveData} disabled={saving || loading} className="flex-1">
@@ -458,13 +448,13 @@ export default function Meals() {
                   <TableHead className="text-black">ಗೋಧಿ</TableHead>
                   <TableHead className="text-black">ಎಣ್ಣೆ</TableHead>
                   <TableHead className="text-black">ಬೇಳೆ</TableHead>
-                  <TableHead className="border-r text-black bg-blue-50">ಸಾದಿಲ್ವಾರು</TableHead>
+                  <TableHead className="border-r text-black">ಸಾದಿಲ್ವಾರು</TableHead>
                   <TableHead className="min-w-[120px] text-center text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
                   <TableHead className="text-black">ಅಕ್ಕಿ</TableHead>
                   <TableHead className="text-black">ಗೋಧಿ</TableHead>
                   <TableHead className="text-black">ಎಣ್ಣೆ</TableHead>
                   <TableHead className="text-black">ಬೇಳೆ</TableHead>
-                  <TableHead className="border-r text-black bg-blue-50">ಸಾದಿಲ್ವಾರು</TableHead>
+                  <TableHead className="border-r text-black">ಸಾದಿಲ್ವಾರು</TableHead>
                   <TableHead className="text-center text-black"></TableHead>
                   <TableHead className="text-center text-black"></TableHead>
                 </TableRow>
@@ -490,13 +480,13 @@ export default function Meals() {
                   <TableCell className="font-bold text-black">{totals.wheat1.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.oil1.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.pulses1.toFixed(3)}</TableCell>
-                  <TableCell className="border-r font-bold text-black bg-blue-50">{totals.sadil1.toFixed(3)}</TableCell>
+                  <TableCell className="border-r font-bold text-black">{totals.sadil1.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.sumCount6to10}</TableCell>
                   <TableCell className="font-bold text-black">{totals.rice6.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.wheat6.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.oil6.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.pulses6.toFixed(3)}</TableCell>
-                  <TableCell className="border-r font-bold text-black bg-blue-50">{totals.sadil6.toFixed(3)}</TableCell>
+                  <TableCell className="border-r font-bold text-black">{totals.sadil6.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-center text-black">{(totals.sadil1 + totals.sadil6).toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-center text-black">{totals.sumCount1to5 + totals.sumCount6to10}</TableCell>
                 </TableRow>
