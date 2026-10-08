@@ -9,7 +9,6 @@ milk_bp = Blueprint('milk', __name__)
 NUMERIC_FIELDS = ['children', 'milk_open', 'ragi_open', 'milk_rcpt', 'ragi_rcpt']
 # Opening stock may be negative: teachers buy milk/ragi out of pocket and record it as distributed with no stock left
 SIGNED_FIELDS = ('milk_open', 'ragi_open')
-DEFAULT_DIST_TYPE = 'milk & ragi'
 
 @milk_bp.before_request
 def require_login():
@@ -67,10 +66,11 @@ def validate_record(r):
             v = int(v)
         clean[key] = v
 
-    dist_type = r.get('dist_type', DEFAULT_DIST_TYPE)
-    if not isinstance(dist_type, str):
-        return None, 'dist_type must be a string'
-    clean['dist_type'] = dist_type
+    # dist_type is nullable: null, missing and "" all mean "not chosen" and are stored as NULL
+    dist_type = r.get('dist_type')
+    if dist_type is not None and not isinstance(dist_type, str):
+        return None, 'dist_type must be a string or null'
+    clean['dist_type'] = dist_type or None
     return clean, None
 
 @milk_bp.route('/save', methods=['POST'])
@@ -96,11 +96,8 @@ def save_milk():
 
     try:
         for r in rows:
-            # Skip rows where all numeric fields are zero and dist_type is default
-            if (
-                all(r[k] == 0 for k in NUMERIC_FIELDS) and
-                r['dist_type'] == DEFAULT_DIST_TYPE
-            ):
+            # Skip untouched rows: all numeric fields zero and no dist_type chosen
+            if all(r[k] == 0 for k in NUMERIC_FIELDS) and r['dist_type'] is None:
                 continue  # skip inserting this row
 
             insert_milk_record(
