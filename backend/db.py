@@ -137,6 +137,70 @@ def get_meal_plans(user_id, year, month):
         print(f"Error getting meal plans: {e}")
         raise
 
+def get_meal_rates(user_id, year, month):
+    """Get the saved meal rates row for an exact month, or None"""
+    try:
+        result = (
+            supabase
+            .table("meal_rates")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("year", year)
+            .eq("month", month)
+            .limit(1)
+            .execute()
+        )
+        return result.data[0] if result.data else None
+
+    except Exception as e:
+        print(f"Error getting meal rates: {e}")
+        raise
+
+
+def get_latest_meal_rates_before(user_id, year, month):
+    """Get the nearest earlier saved meal rates row, or None"""
+    try:
+        result = (
+            supabase
+            .table("meal_rates")
+            .select("*")
+            .eq("user_id", user_id)
+            .or_(f"year.lt.{year},and(year.eq.{year},month.lt.{month})")
+            .order("year", desc=True)
+            .order("month", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return result.data[0] if result.data else None
+
+    except Exception as e:
+        print(f"Error getting earlier meal rates: {e}")
+        raise
+
+
+def upsert_meal_rates(user_id, year, month, row_dict):
+    """Insert or update the meal rates row for one month"""
+    try:
+        payload = {
+            **row_dict,
+            "user_id": user_id,
+            "year": year,
+            "month": month,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        result = (
+            supabase
+            .table("meal_rates")
+            .upsert(payload, on_conflict="user_id,year,month")
+            .execute()
+        )
+        return result.data[0] if result.data else None
+
+    except Exception as e:
+        print(f"Error saving meal rates: {e}")
+        raise
+
+
 def insert_milk_record(user_id, date, children, milk_open, ragi_open, milk_rcpt, ragi_rcpt, dist_type):
     """Insert or update milk record"""
     try:

@@ -1,6 +1,10 @@
 from flask import Blueprint, request, jsonify, g
 from auth_session import load_session_user
-from db import get_meal_plans, insert_meal_plan
+from db import (
+    get_meal_plans, insert_meal_plan,
+    get_meal_rates, get_latest_meal_rates_before, upsert_meal_rates,
+)
+from meal_calc import rates_from_row, rates_to_row, validate_rates
 from datetime import datetime
 
 meal_bp = Blueprint('meal', __name__)
@@ -61,6 +65,70 @@ def _validate_record(rec):
     return {'date': date, 'meal_type': meal_type, 'has_pulses': has_pulses, **counts}, None
 
 
+def _check_year_month(year, month):
+    if not 2000 <= year <= 2100:
+        return 'year must be between 2000 and 2100'
+    if not 1 <= month <= 12:
+        return 'month must be between 1 and 12'
+    return None
+
+
+def _rates_payload(source, year, month, row, inherited_from=None):
+    return {
+        'source': source,
+        'year': year,
+        'month': month,
+        'inherited_from': inherited_from,
+        'rates': rates_from_row(row) if row else None,
+    }
+
+
+@meal_bp.route('/rates/<int:year>/<int:month>', methods=['GET'])
+def get_rates(year, month):
+    """Read-only: saved rates for the month, else nearest earlier month's, else none."""
+    error = _check_year_month(year, month)
+    if error:
+        return jsonify({'error': error}), 400
+
+    try:
+        row = get_meal_rates(g.user_id, year, month)
+        if row:
+            return jsonify(_rates_payload('saved', year, month, row))
+
+        earlier = get_latest_meal_rates_before(g.user_id, year, month)
+        if earlier:
+            return jsonify(_rates_payload(
+                'inherited', year, month, earlier,
+                {'year': earlier['year'], 'month': earlier['month']},
+            ))
+        return jsonify(_rates_payload('none', year, month, None))
+    except Exception as e:
+        print("Error loading meal rates:", e)
+        return jsonify({'error': str(e)}), 500
+
+
+@meal_bp.route('/rates/<int:year>/<int:month>', methods=['PUT'])
+def put_rates(year, month):
+    error = _check_year_month(year, month)
+    if error:
+        return jsonify({'error': error}), 400
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Request body must be a JSON object'}), 400
+
+    clean, reason = validate_rates(data.get('rates'))
+    if reason:
+        return jsonify({'error': reason}), 400
+
+    try:
+        upsert_meal_rates(g.user_id, year, month, rates_to_row(clean))
+        return jsonify(_rates_payload('saved', year, month, rates_to_row(clean)))
+    except Exception as e:
+        print("Error saving meal rates:", e)
+        return jsonify({'error': str(e)}), 500
+
+
 @meal_bp.route('/save', methods=['POST'])
 def save_meals():
     user_id = g.user_id
@@ -85,6 +153,23 @@ def save_meals():
         clean.append(value)
 
     try:
+        # Every month being saved needs a saved rate row. Work out what is missing
+        # (and fail) before writing anything; freeze inherited rates afterwards.
+        to_freeze = []
+        for year, month in sorted({(int(r['date'][:4]), int(r['date'][5:7])) for r in clean}):
+            if get_meal_rates(user_id, year, month):
+                continue
+            earlier = get_latest_meal_rates_before(user_id, year, month)
+            if not earlier:
+                return jsonify({
+                    'error': 'Set the rates for this month first',
+                    'code': 'rates_not_configured',
+                }), 400
+            to_freeze.append((year, month, rates_to_row(rates_from_row(earlier))))
+
+        for year, month, row in to_freeze:
+            upsert_meal_rates(user_id, year, month, row)
+
         for rec in clean:
             insert_meal_plan(user_id=user_id, **rec)
         return jsonify({'status': 'success'})
