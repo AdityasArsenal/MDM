@@ -429,10 +429,10 @@ export default function Stock() {
                         <TableCell>1-5</TableCell>
                         {isFirstDay ? (
                           <>
-                            <TableCell><SignedNumberInput value={row1to5.rice_open} onValueChange={v => handleChange(date, '1-5', 'rice_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                            <TableCell><SignedNumberInput value={row1to5.wheat_open} onValueChange={v => handleChange(date, '1-5', 'wheat_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                            <TableCell><SignedNumberInput value={row1to5.oil_open} onValueChange={v => handleChange(date, '1-5', 'oil_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                            <TableCell><SignedNumberInput value={row1to5.pulse_open} onValueChange={v => handleChange(date, '1-5', 'pulse_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput placeholder="0" value={row1to5.rice_open} onValueChange={v => handleChange(date, '1-5', 'rice_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput placeholder="0" value={row1to5.wheat_open} onValueChange={v => handleChange(date, '1-5', 'wheat_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput placeholder="0" value={row1to5.oil_open} onValueChange={v => handleChange(date, '1-5', 'oil_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput placeholder="0" value={row1to5.pulse_open} onValueChange={v => handleChange(date, '1-5', 'pulse_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
                           </>
                         ) : (
                           <>
@@ -442,10 +442,10 @@ export default function Stock() {
                             <TableCell>{fmt(opening1to5.pulse)}</TableCell>
                           </>
                         )}
-                        <TableCell><SignedNumberInput value={row1to5.rice_add} onValueChange={v => handleChange(date, '1-5', 'rice_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                        <TableCell><SignedNumberInput value={row1to5.wheat_add} onValueChange={v => handleChange(date, '1-5', 'wheat_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                        <TableCell><SignedNumberInput value={row1to5.oil_add} onValueChange={v => handleChange(date, '1-5', 'oil_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                        <TableCell><SignedNumberInput value={row1to5.pulse_add} onValueChange={v => handleChange(date, '1-5', 'pulse_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell><SignedNumberInput placeholder="0" value={row1to5.rice_add} onValueChange={v => handleChange(date, '1-5', 'rice_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell><SignedNumberInput placeholder="0" value={row1to5.wheat_add} onValueChange={v => handleChange(date, '1-5', 'wheat_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell><SignedNumberInput placeholder="0" value={row1to5.oil_add} onValueChange={v => handleChange(date, '1-5', 'oil_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell><SignedNumberInput placeholder="0" value={row1to5.pulse_add} onValueChange={v => handleChange(date, '1-5', 'pulse_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
                         <TableCell>{fmt(totals1to5.rice)}</TableCell>
                         <TableCell>{fmt(totals1to5.wheat)}</TableCell>
                         <TableCell>{fmt(totals1to5.oil)}</TableCell>
@@ -463,10 +463,10 @@ export default function Stock() {
                         <TableCell>6-10</TableCell>
                         {isFirstDay ? (
                           <>
-                            <TableCell><SignedNumberInput value={row6to10.rice_open} onValueChange={v => handleChange(date, '6-10', 'rice_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                            <TableCell><SignedNumberInput value={row6to10.wheat_open} onValueChange={v => handleChange(date, '6-10', 'wheat_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                            <TableCell><SignedNumberInput value={row6to10.oil_open} onValueChange={v => handleChange(date, '6-10', 'oil_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                            <TableCell><SignedNumberInput value={row6to10.pulse_open} onValueChange={v => handleChange(date, '6-10', 'pulse_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput placeholder="0" value={row6to10.rice_open} onValueChange={v => handleChange(date, '6-10', 'rice_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput placeholder="0" value={row6to10.wheat_open} onValueChange={v => handleChange(date, '6-10', 'wheat_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput placeholder="0" value={row6to10.oil_open} onValueChange={v => handleChange(date, '6-10', 'oil_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                            <TableCell><SignedNumberInput placeholder="0" value={row6to10.pulse_open} onValueChange={v => handleChange(date, '6-10', 'pulse_open', v)} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
                           </>
                         ) : (
                           <>
@@ -476,10 +476,10 @@ export default function Stock() {
                             <TableCell>{fmt(opening6to10.pulse)}</TableCell>
                           </>
                         )}
-                        <TableCell><SignedNumberInput value={row6to10.rice_add} onValueChange={v => handleChange(date, '6-10', 'rice_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                        <TableCell><SignedNumberInput value={row6to10.wheat_add} onValueChange={v => handleChange(date, '6-10', 'wheat_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                        <TableCell><SignedNumberInput value={row6to10.oil_add} onValueChange={v => handleChange(date, '6-10', 'oil_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
-                        <TableCell><SignedNumberInput value={row6to10.pulse_add} onValueChange={v => handleChange(date, '6-10', 'pulse_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell><SignedNumberInput placeholder="0" value={row6to10.rice_add} onValueChange={v => handleChange(date, '6-10', 'rice_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell><SignedNumberInput placeholder="0" value={row6to10.wheat_add} onValueChange={v => handleChange(date, '6-10', 'wheat_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell><SignedNumberInput placeholder="0" value={row6to10.oil_add} onValueChange={v => handleChange(date, '6-10', 'oil_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
+                        <TableCell><SignedNumberInput placeholder="0" value={row6to10.pulse_add} onValueChange={v => handleChange(date, '6-10', 'pulse_add', v)} allowNegative={false} className="w-20 text-xs p-1" disabled={isDisabled} /></TableCell>
                         <TableCell>{fmt(totals6to10.rice)}</TableCell>
                         <TableCell>{fmt(totals6to10.wheat)}</TableCell>
                         <TableCell>{fmt(totals6to10.oil)}</TableCell>

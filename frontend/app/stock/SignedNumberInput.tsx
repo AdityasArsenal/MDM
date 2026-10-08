@@ -9,6 +9,7 @@ interface SignedNumberInputProps {
   allowNegative?: boolean;
   className?: string;
   disabled?: boolean;
+  placeholder?: string;
 }
 
 // Shown when not editing: 0 (and anything that rounds to 0) is an empty field
@@ -25,6 +26,7 @@ export function SignedNumberInput({
   allowNegative = true,
   className,
   disabled,
+  placeholder,
 }: SignedNumberInputProps) {
   const [draft, setDraft] = useState<string | null>(null);
   const allowed = allowNegative ? /^-?\d*\.?\d*$/ : /^\d*\.?\d*$/;
@@ -52,6 +54,7 @@ export function SignedNumberInput({
       onBlur={() => setDraft(null)}
       className={className}
       disabled={disabled}
+      placeholder={placeholder}
     />
   );
 }
