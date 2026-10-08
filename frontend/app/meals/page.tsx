@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, memo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { exportToPDF } from '@/app/utils/pdf';
+import { authFetch } from '../utils/api';
 import {
   Table,
   TableBody,
@@ -60,7 +61,8 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
     field: 'cnt_1to5' | 'cnt_6to10'
   ) => {
     const value = e.target.valueAsNumber;
-    const finalValue = isNaN(value) ? 0 : value;
+    // Backend needs integers >= 0: drop decimals, negatives and NaN
+    const finalValue = Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
     
     // Clear any pending timeout
     if (inputTimeoutRef.current) {
@@ -209,18 +211,19 @@ export default function Meals() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${BACKEND_URL}/api/meal/${year}/${month}?user_id=${userId}`, {
+      const res = await authFetch(`${BACKEND_URL}/api/meal/${year}/${month}`, {
         headers: { 'ngrok-skip-browser-warning': 'true' }
       });
-      if (!res.ok) throw new Error('Failed to load');
-      const data = await res.json();
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.error || 'Failed to load');
+      const data: MealRow[] = Array.isArray(body) ? body : [];
       
       const daysInMonth = new Date(year, month, 0).getDate();
       const allDays: MealRow[] = [];
       
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const existing = data.find((m: any) => m.date.startsWith(dateStr));
+        const existing = data.find((m) => m.date.startsWith(dateStr));
         
         allDays.push(existing ? {
           id: day,
@@ -259,24 +262,24 @@ export default function Meals() {
         .filter(m => m.meal_type !== null)
         .map(m => ({
           date: m.date,
-          cnt_1to5: m.cnt_1to5 || 0,
-          cnt_6to10: m.cnt_6to10 || 0,
+          cnt_1to5: Number.isInteger(m.cnt_1to5) && m.cnt_1to5 > 0 ? m.cnt_1to5 : 0,
+          cnt_6to10: Number.isInteger(m.cnt_6to10) && m.cnt_6to10 > 0 ? m.cnt_6to10 : 0,
           meal_type: m.meal_type,
           has_pulses: m.has_pulses || false
         }));
 
-      console.log('Saving meals:', { user_id: userId, meals: mealsToSave });
+      console.log('Saving meals:', { records: mealsToSave });
 
-      const res = await fetch(`${BACKEND_URL}/api/meal/save`, {
+      const res = await authFetch(`${BACKEND_URL}/api/meal/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true'
         },
-        body: JSON.stringify({ user_id: userId, meals: mealsToSave })
+        body: JSON.stringify({ records: mealsToSave })
       });
       
-      const responseData = await res.json();
+      const responseData = await res.json().catch(() => ({}));
       console.log('Response:', responseData);
       
       if (!res.ok) {
