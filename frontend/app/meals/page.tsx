@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { exportToPDF } from '@/app/utils/pdf';
 import { authFetch } from '../utils/api';
 import { RatesEditor } from './RatesEditor';
+import { RatesToast } from './RatesToast';
 import {
   Table,
   TableBody,
@@ -35,6 +36,9 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 if (!BACKEND_URL) {
   throw new Error("NEXT_PUBLIC_BACKEND_URL is undefined. App cannot start.");
 }
+
+const monthLabel = (y: number, m: number) =>
+  `${new Date(y, m - 1).toLocaleString('default', { month: 'long' })} ${y}`;
 
 interface MealTableRowProps {
   row: MealRow;
@@ -194,6 +198,9 @@ export default function Meals() {
   // Rows (by id) that were blocked on save for a missing choice
   const [ratesInfo, setRatesInfo] = useState<RatesResponse | null>(null);
   const [ratesLoading, setRatesLoading] = useState(false);
+  const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
+  const showToast = useCallback((text: string) => setToast({ id: Date.now(), text }), []);
+  const clearToast = useCallback(() => setToast(null), []);
   const [editorOpen, setEditorOpen] = useState(false);
   const [ratesSaving, setRatesSaving] = useState(false);
   const [blockedIds, setBlockedIds] = useState<Set<number>>(new Set());
@@ -268,6 +275,7 @@ export default function Meals() {
     if (!userId) return;
     let cancelled = false;
     setRatesInfo(null);
+    setToast(null);
     setRatesLoading(true);
     (async () => {
       try {
@@ -279,7 +287,13 @@ export default function Meals() {
         if (cancelled) return;
         setRatesInfo(body as RatesResponse);
         // No rates at all: force the setup
-        if ((body as RatesResponse).source === 'none') setEditorOpen(true);
+        const info = body as RatesResponse;
+        if (info.source === 'none') setEditorOpen(true);
+        else if (info.source === 'inherited' && info.inherited_from) {
+          showToast(`Rates for ${monthLabel(year, month)} are not saved yet. Showing ${monthLabel(info.inherited_from.year, info.inherited_from.month)}'s rates. You can configure rates for this month with Edit Rates.`);
+        } else if (info.source === 'saved') {
+          showToast(`Rates for ${monthLabel(year, month)} are saved.`);
+        }
       } catch (err) {
         if (!cancelled) alert('Error loading rates: ' + (err instanceof Error ? err.message : String(err)));
       } finally {
@@ -287,7 +301,7 @@ export default function Meals() {
       }
     })();
     return () => { cancelled = true; };
-  }, [userId, year, month]);
+  }, [userId, year, month, showToast]);
 
   const saveRates = async (rates: MealRates) => {
     setRatesSaving(true);
@@ -304,6 +318,7 @@ export default function Meals() {
       if (!res.ok) throw new Error(body?.error || 'Failed to save rates');
       setRatesInfo(body as RatesResponse);
       setEditorOpen(false);
+      showToast(`Rates for ${monthLabel(year, month)} are saved.`);
     } catch (err) {
       alert('Error saving rates: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
@@ -384,8 +399,6 @@ export default function Meals() {
   }, []);
 
   const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
-  const monthLabel = (y: number, m: number) =>
-    `${new Date(y, m - 1).toLocaleString('default', { month: 'long' })} ${y}`;
   // Entries are locked until this month has usable rates
   const ratesLocked = ratesLoading || !ratesInfo || ratesInfo.source === 'none';
 
@@ -476,17 +489,9 @@ export default function Meals() {
             Rates are not set yet. Enter the rates to start.
           </div>
         )}
-        {ratesInfo?.source === 'inherited' && ratesInfo.inherited_from && (
-          <div className="p-3 mb-2 rounded border border-amber-400 bg-amber-100 text-amber-900 text-sm font-semibold">
-            Rates for {monthLabel(year, month)} are not saved yet. Showing {monthLabel(ratesInfo.inherited_from.year, ratesInfo.inherited_from.month)}&apos;s rates. You can configure rates for this month with Edit Rates.
-          </div>
-        )}
 
         {/* Outside printRef so the PDF export does not capture the rates controls */}
         <div className="flex justify-end items-center gap-2 mb-2">
-          {ratesInfo?.source === 'saved' && (
-            <span className="text-xs text-green-700 bg-green-50 border border-green-200 rounded px-2 py-1">Saved rates</span>
-          )}
           <Button
             onClick={() => setEditorOpen(true)}
             disabled={!ratesInfo}
@@ -586,6 +591,7 @@ export default function Meals() {
         </div>
         )}
       </div>
+      {toast && <RatesToast key={toast.id} text={toast.text} onDone={clearToast} />}
       {editorOpen && ratesInfo && (
         <RatesEditor
           key={`${year}-${month}-${ratesInfo.source}`}
