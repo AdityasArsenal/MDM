@@ -37,7 +37,8 @@ const DraftNumberInput = ({ value, onCommit }: { value: number; onCommit: (n: nu
     <Input
       type="text"
       inputMode="decimal"
-      value={draft ?? String(value || 0)}
+      value={draft ?? (value ? String(value) : '')}
+      placeholder="0"
       onChange={e => handleChange(e.target.value)}
       onBlur={() => setDraft(null)}
       className="w-20"
@@ -61,6 +62,8 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false }: MilkTableRowP
   const sugar = useMemo(() => calculateSugar(row.children || 0), [row.children]);
   const sunday = useMemo(() => isSunday(row.date), [row.date]);
   const dayName = useMemo(() => getDayName(row.date), [row.date]);
+  const missingDist = row.children > 0 && !row.dist_type;
+  const missingRing = missingDist ? ' ring-2 ring-red-500' : '';
 
   return (
     <TableRow>
@@ -75,7 +78,7 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false }: MilkTableRowP
               row.dist_type === 'milk & ragi'
                 ? 'bg-blue-500 text-white font-semibold'
                 : 'bg-gray-200 text-black'
-            }`}>
+            }${missingRing}`}>
             ಹಾಲು ಮತ್ತು ರಾಗಿ
           </button>
           <button
@@ -84,7 +87,7 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false }: MilkTableRowP
               row.dist_type === 'only milk'
                 ? 'bg-orange-500 text-white font-semibold'
                 : 'bg-gray-200 text-black'
-            }`}>
+            }${missingRing}`}>
             ಕೇವಲ ಹಾಲು
           </button>
         </div>
@@ -92,7 +95,8 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false }: MilkTableRowP
       <TableCell>
         <Input
           type="number"
-          value={row.children || 0}
+          value={row.children || ''}
+          placeholder="0"
           onChange={e => onHandleChange(row.id, 'children', e.target.valueAsNumber || 0)}
           step="1"
           min="0"
@@ -117,7 +121,8 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false }: MilkTableRowP
       <TableCell>
         <Input
           type="number"
-          value={row.milk_rcpt || 0}
+          value={row.milk_rcpt || ''}
+          placeholder="0"
           onChange={e => onHandleChange(row.id, 'milk_rcpt', e.target.valueAsNumber || 0)}
           className="w-20"
         />
@@ -125,7 +130,8 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false }: MilkTableRowP
       <TableCell>
         <Input
           type="number"
-          value={row.ragi_rcpt || 0}
+          value={row.ragi_rcpt || ''}
+          placeholder="0"
           onChange={e => onHandleChange(row.id, 'ragi_rcpt', e.target.valueAsNumber || 0)}
           className="w-20"
         />
