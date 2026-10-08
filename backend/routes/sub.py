@@ -4,8 +4,11 @@ from flask import Blueprint, request, jsonify, g
 from auth_session import login_required
 from db import get_subscription_by_user_id, get_subscription_history, check_active_subscription, expire_old_subscriptions
 from datetime import datetime
+import logging
+from routes.pay import reconcile_pending_payments
 
 sub_bp = Blueprint('sub', __name__)
+logger = logging.getLogger(__name__)
 
 @sub_bp.route('/active', methods=['GET'])
 @login_required
@@ -76,6 +79,13 @@ def check_subscription():
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
     
+    # A user who paid and closed the browser never reached /api/pay/status, so
+    # re-check their recent unfinished payments first. Must never break this route.
+    try:
+        reconcile_pending_payments(user_id)
+    except Exception as e:
+        logger.error(f"Payment reconcile failed for user {user_id}: {type(e).__name__}")
+
     has_active = check_active_subscription(user_id)
     
     return jsonify({
@@ -87,7 +97,9 @@ def expire_subscriptions():
     """Expire old subscriptions (cron job). Requires the X-Cron-Secret header."""
     # Fails closed: if CRON_SECRET is not set, nobody can call this
     cron_secret = os.getenv('CRON_SECRET')
-    if not cron_secret or not hmac.compare_digest(request.headers.get('X-Cron-Secret', ''), cron_secret):
+    # Compare bytes: compare_digest raises TypeError on non-ASCII str
+    provided = request.headers.get('X-Cron-Secret', '')
+    if not cron_secret or not hmac.compare_digest(provided.encode('utf-8'), cron_secret.encode('utf-8')):
         return jsonify({'error': 'Forbidden'}), 403
 
     try:
