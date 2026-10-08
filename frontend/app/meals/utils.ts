@@ -12,37 +12,54 @@ export interface MealRow {
   has_pulses: boolean | null; // null = not chosen yet
 }
 
+// Rates come from the backend per month. rice/wheat/oil/pulse are GRAMS PER CHILD, sadilvaru is a value per child.
+export interface RateGroup {
+  rice_g: number;
+  wheat_g: number;
+  oil_g: number;
+  pulse_g: number;
+  sadilvaru: number;
+}
+
+export interface MealRates {
+  g1_5: RateGroup;
+  g6_10: RateGroup;
+}
+
+export interface RatesResponse {
+  source: 'saved' | 'inherited' | 'none';
+  year: number;
+  month: number;
+  inherited_from: { year: number; month: number } | null;
+  rates: MealRates | null;
+}
+
+const ZERO_RESULT = { rice: 0, wheat: 0, oil: 0, pulses: 0, sadilvaru: 0 };
+
 // Pure calculation functions - no React dependencies
+// rice/wheat/oil/pulses are in KG (grams * count / 1000); sadilvaru = rate * count
 export const calculateMeal = (
+  rates: RateGroup | null,
   count: number,
   mealType: MealType,
-  hasPulses: boolean | null, // null counts as no pulses
-  isGrade1to5: boolean
+  hasPulses: boolean | null // null counts as no pulses
 ) => {
-  const riceVal = isGrade1to5 ? 0.1 : 0.15;
-  const wheatVal = isGrade1to5 ? 0.1 : 0.15;
-  const oilVal = isGrade1to5 ? 0.005 : 0.0075;
-  const pulsesVal = isGrade1to5 ? 0.02 : 0.03;
-  const sadilvaruVal = isGrade1to5 ? 2.15 : 3.12;
+  if (!rates || !mealType) return ZERO_RESULT;
 
-  if (!mealType) {
-    return { rice: 0, wheat: 0, oil: 0, pulses: 0, sadilvaru: 0 };
-  }
-
-  const riceAmount = mealType === 'rice' ? count * riceVal : 0;
-  const wheatAmount = mealType === 'wheat' ? count * wheatVal : 0;
-  const oilAmount = count * oilVal;
-  const pulsesAmount = hasPulses ? count * pulsesVal : 0;
-  const sadilvaruAmount = count * sadilvaruVal;
-
-  return { rice: riceAmount, wheat: wheatAmount, oil: oilAmount, pulses: pulsesAmount, sadilvaru: sadilvaruAmount };
+  return {
+    rice: mealType === 'rice' ? (rates.rice_g * count) / 1000 : 0,
+    wheat: mealType === 'wheat' ? (rates.wheat_g * count) / 1000 : 0,
+    oil: (rates.oil_g * count) / 1000,
+    pulses: hasPulses === true ? (rates.pulse_g * count) / 1000 : 0,
+    sadilvaru: rates.sadilvaru * count,
+  };
 };
 
-export const calc1to5 = (count: number, mealType: MealType, hasPulses: boolean | null) =>
-  calculateMeal(count, mealType, hasPulses, true);
+export const calc1to5 = (rates: MealRates | null, count: number, mealType: MealType, hasPulses: boolean | null) =>
+  calculateMeal(rates ? rates.g1_5 : null, count, mealType, hasPulses);
 
-export const calc6to10 = (count: number, mealType: MealType, hasPulses: boolean | null) =>
-  calculateMeal(count, mealType, hasPulses, false);
+export const calc6to10 = (rates: MealRates | null, count: number, mealType: MealType, hasPulses: boolean | null) =>
+  calculateMeal(rates ? rates.g6_10 : null, count, mealType, hasPulses);
 
 // Date helper functions - pure, no side effects
 export const getDayName = (dateStr: string) => {

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo, memo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { exportToPDF } from '@/app/utils/pdf';
 import { authFetch } from '../utils/api';
+import { RatesEditor } from './RatesEditor';
 import {
   Table,
   TableBody,
@@ -19,6 +20,8 @@ import { PageFooter } from '@/app/components/PageFooter';
 import {
   MealRow,
   MealType,
+  MealRates,
+  RatesResponse,
   calc1to5,
   calc6to10,
   getDayName,
@@ -40,22 +43,23 @@ interface MealTableRowProps {
   onPulsesToggle: (id: number, include: boolean) => void;
   missingMeal: boolean;
   missingPulses: boolean;
+  rates: MealRates | null;
 }
 
-const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggle, missingMeal, missingPulses }: MealTableRowProps) => {
+const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggle, missingMeal, missingPulses, rates }: MealTableRowProps) => {
   // Task 5: Prevent state update storms - use refs to batch rapid input changes
   const inputTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { c1, c2, totalSadilvaru, totalChildren, isRowSunday, isRowToday } = useMemo(() => {
-    const c1 = calc1to5(row.cnt_1to5, row.meal_type, row.has_pulses);
-    const c2 = calc6to10(row.cnt_6to10, row.meal_type, row.has_pulses);
+    const c1 = calc1to5(rates, row.cnt_1to5, row.meal_type, row.has_pulses);
+    const c2 = calc6to10(rates, row.cnt_6to10, row.meal_type, row.has_pulses);
     const totalSadilvaru = c1.sadilvaru + c2.sadilvaru;
     const totalChildren = (row.cnt_1to5 || 0) + (row.cnt_6to10 || 0);
     const isRowSunday = isSunday(row.date);
     const isRowToday = isToday(row.date);
     
     return { c1, c2, totalSadilvaru, totalChildren, isRowSunday, isRowToday };
-  }, [row.cnt_1to5, row.cnt_6to10, row.meal_type, row.has_pulses, row.date]);
+  }, [rates, row.cnt_1to5, row.cnt_6to10, row.meal_type, row.has_pulses, row.date]);
 
   // Task 5: Batch rapid input changes using controlled input with deferred state updates
   const handleInputChange = useCallback((
@@ -188,6 +192,10 @@ export default function Meals() {
   const [saving, setSaving] = useState(false);
   const [zoom, setZoom] = useState(1);
   // Rows (by id) that were blocked on save for a missing choice
+  const [ratesInfo, setRatesInfo] = useState<RatesResponse | null>(null);
+  const [ratesLoading, setRatesLoading] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [ratesSaving, setRatesSaving] = useState(false);
   const [blockedIds, setBlockedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
@@ -255,6 +263,54 @@ export default function Meals() {
     loadMeals();
   }, [loadMeals]);
 
+  // Rates for the selected month (saved, inherited from an earlier month, or none)
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    setRatesInfo(null);
+    setRatesLoading(true);
+    (async () => {
+      try {
+        const res = await authFetch(`${BACKEND_URL}/api/meal/rates/${year}/${month}`, {
+          headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
+        const body = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(body?.error || 'Failed to load rates');
+        if (cancelled) return;
+        setRatesInfo(body as RatesResponse);
+        // No rates at all: force the setup
+        if ((body as RatesResponse).source === 'none') setEditorOpen(true);
+      } catch (err) {
+        if (!cancelled) alert('Error loading rates: ' + (err instanceof Error ? err.message : String(err)));
+      } finally {
+        if (!cancelled) setRatesLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId, year, month]);
+
+  const saveRates = async (rates: MealRates) => {
+    setRatesSaving(true);
+    try {
+      const res = await authFetch(`${BACKEND_URL}/api/meal/rates/${year}/${month}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
+        body: JSON.stringify({ rates })
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.error || 'Failed to save rates');
+      setRatesInfo(body as RatesResponse);
+      setEditorOpen(false);
+    } catch (err) {
+      alert('Error saving rates: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setRatesSaving(false);
+    }
+  };
+
   const saveMeals = async () => {
 
     // A row is touched if any choice was made or any count entered
@@ -296,6 +352,11 @@ export default function Meals() {
       console.log('Response:', responseData);
       
       if (!res.ok) {
+        if (responseData.code === 'rates_not_configured') {
+          alert(responseData.error || 'Rates are not configured for this month');
+          setEditorOpen(true);
+          return;
+        }
         throw new Error(responseData.error || 'Failed to save');
       }
       
@@ -323,6 +384,10 @@ export default function Meals() {
   }, []);
 
   const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+  const monthLabel = (y: number, m: number) =>
+    `${new Date(y, m - 1).toLocaleString('default', { month: 'long' })} ${y}`;
+  // Entries are locked until this month has usable rates
+  const ratesLocked = ratesLoading || !ratesInfo || ratesInfo.source === 'none';
 
   const handleExportPDF = () => {
     const fileName = `Meals_${monthName}_${year}.pdf`;
@@ -342,8 +407,8 @@ export default function Meals() {
         // Early return if no meal type - skip unnecessary calculations
         if (!row.meal_type) return acc;
         
-        const one = calc1to5(row.cnt_1to5, row.meal_type, row.has_pulses);
-        const six = calc6to10(row.cnt_6to10, row.meal_type, row.has_pulses);
+        const one = calc1to5(ratesInfo?.rates ?? null, row.cnt_1to5, row.meal_type, row.has_pulses);
+        const six = calc6to10(ratesInfo?.rates ?? null, row.cnt_6to10, row.meal_type, row.has_pulses);
         
         acc.sumCount1to5 += row.cnt_1to5 || 0;
         acc.sumCount6to10 += row.cnt_6to10 || 0;
@@ -363,7 +428,7 @@ export default function Meals() {
       { sumCount1to5: 0, sumCount6to10: 0, rice1: 0, wheat1: 0, oil1: 0, pulses1: 0, sadil1: 0, 
         rice6: 0, wheat6: 0, oil6: 0, pulses6: 0, sadil6: 0 }
     );
-  }, [meals]); // Only depends on meals array, not loading/saving/error
+  }, [meals, ratesInfo]); // Only depends on meals and rates, not loading/saving
 
   return (
     <div className="min-h-screen bg-gray-50 p-2">
@@ -397,22 +462,46 @@ export default function Meals() {
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={saveData} disabled={saving || loading} className="flex-1">
+            <Button onClick={saveData} disabled={saving || loading || ratesLocked} className="flex-1">
               {saving ? 'Saving...' : 'Save All'}
             </Button>
-            <Button onClick={handleExportPDF} disabled={loading} className="flex-1">
+            <Button onClick={handleExportPDF} disabled={loading || ratesLocked} className="flex-1">
               Download PDF
             </Button>
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 mb-2">
+        {ratesInfo?.source === 'none' && (
+          <div className="p-3 mb-2 rounded border border-orange-400 bg-orange-100 text-orange-900 text-sm font-semibold">
+            Rates are not set yet. Enter the rates to start.
+          </div>
+        )}
+        {ratesInfo?.source === 'inherited' && ratesInfo.inherited_from && (
+          <div className="p-3 mb-2 rounded border border-amber-400 bg-amber-100 text-amber-900 text-sm font-semibold">
+            Rates for {monthLabel(year, month)} are not saved yet. Showing {monthLabel(ratesInfo.inherited_from.year, ratesInfo.inherited_from.month)}&apos;s rates. You can configure rates for this month with Edit Rates.
+          </div>
+        )}
+
+        {/* Outside printRef so the PDF export does not capture the rates controls */}
+        <div className="flex justify-end items-center gap-2 mb-2">
+          {ratesInfo?.source === 'saved' && (
+            <span className="text-xs text-green-700 bg-green-50 border border-green-200 rounded px-2 py-1">Saved rates</span>
+          )}
+          <Button
+            onClick={() => setEditorOpen(true)}
+            disabled={!ratesInfo}
+            className="bg-orange-500 hover:bg-orange-600 text-white"
+          >
+            Edit Rates
+          </Button>
           <Button onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}>-</Button>
           <Button onClick={() => setZoom(z => Math.min(2, z + 0.1))}>+</Button>
         </div>
 
-        {loading ? (
+        {loading || ratesLoading ? (
           <div className="text-center p-8">Loading...</div>
+        ) : ratesInfo?.source === 'none' ? (
+          <div className="text-center p-8 text-black">Table is locked until rates are saved.</div>
         ) : (
           <div className="overflow-auto">
             <div
@@ -444,16 +533,16 @@ export default function Meals() {
                   <TableHead className="w-[120px] text-black">Meal Type</TableHead>
                   <TableHead className="w-[120px] text-black">ಬೇಳೆ (yes/no)</TableHead>
                   <TableHead className="min-w-[120px] text-center text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
-                  <TableHead className="text-black">ಅಕ್ಕಿ</TableHead>
-                  <TableHead className="text-black">ಗೋಧಿ</TableHead>
-                  <TableHead className="text-black">ಎಣ್ಣೆ</TableHead>
-                  <TableHead className="text-black">ಬೇಳೆ</TableHead>
+                  <TableHead className="text-black">ಅಕ್ಕಿ (kg)</TableHead>
+                  <TableHead className="text-black">ಗೋಧಿ (kg)</TableHead>
+                  <TableHead className="text-black">ಎಣ್ಣೆ (kg)</TableHead>
+                  <TableHead className="text-black">ಬೇಳೆ (kg)</TableHead>
                   <TableHead className="border-r text-black">ಸಾದಿಲ್ವಾರು</TableHead>
                   <TableHead className="min-w-[120px] text-center text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
-                  <TableHead className="text-black">ಅಕ್ಕಿ</TableHead>
-                  <TableHead className="text-black">ಗೋಧಿ</TableHead>
-                  <TableHead className="text-black">ಎಣ್ಣೆ</TableHead>
-                  <TableHead className="text-black">ಬೇಳೆ</TableHead>
+                  <TableHead className="text-black">ಅಕ್ಕಿ (kg)</TableHead>
+                  <TableHead className="text-black">ಗೋಧಿ (kg)</TableHead>
+                  <TableHead className="text-black">ಎಣ್ಣೆ (kg)</TableHead>
+                  <TableHead className="text-black">ಬೇಳೆ (kg)</TableHead>
                   <TableHead className="border-r text-black">ಸಾದಿಲ್ವಾರು</TableHead>
                   <TableHead className="text-center text-black"></TableHead>
                   <TableHead className="text-center text-black"></TableHead>
@@ -469,6 +558,7 @@ export default function Meals() {
                     onPulsesToggle={handlePulsesToggle}
                     missingMeal={blockedIds.has(row.id) && row.meal_type === null}
                     missingPulses={blockedIds.has(row.id) && row.has_pulses === null}
+                    rates={ratesInfo?.rates ?? null}
                   />
                 ))}
               </TableBody>
@@ -496,6 +586,16 @@ export default function Meals() {
         </div>
         )}
       </div>
+      {editorOpen && ratesInfo && (
+        <RatesEditor
+          key={`${year}-${month}-${ratesInfo.source}`}
+          initial={ratesInfo.rates}
+          required={ratesInfo.source === 'none'}
+          saving={ratesSaving}
+          onSave={saveRates}
+          onClose={() => setEditorOpen(false)}
+        />
+      )}
       <PageFooter />
     </div>
   );
