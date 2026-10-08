@@ -55,6 +55,8 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, onChange }: EggTa
       <TableCell>
         <Input 
           type="number" 
+          min={0}
+          step={1}
           value={row.egg_m || ''} 
           onChange={e => onChange(index, 'egg_m', Number(e.target.value))}
           className="w-14 h-8 text-xs p-1" 
@@ -63,6 +65,8 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, onChange }: EggTa
       <TableCell>
         <Input 
           type="number" 
+          min={0}
+          step={1}
           value={row.egg_f || ''} 
           onChange={e => onChange(index, 'egg_f', Number(e.target.value))}
           className="w-14 h-8 text-xs p-1" 
@@ -73,6 +77,8 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, onChange }: EggTa
       <TableCell>
         <Input 
           type="number" 
+          min={0}
+          step={1}
           value={row.banana_m || ''} 
           onChange={e => onChange(index, 'banana_m', Number(e.target.value))}
           className="w-14 h-8 text-xs p-1" 
@@ -81,6 +87,8 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, onChange }: EggTa
       <TableCell>
         <Input 
           type="number" 
+          min={0}
+          step={1}
           value={row.banana_f || ''} 
           onChange={e => onChange(index, 'banana_f', Number(e.target.value))}
           className="w-14 h-8 text-xs p-1" 

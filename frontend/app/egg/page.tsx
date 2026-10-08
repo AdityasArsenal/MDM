@@ -74,8 +74,8 @@ export default function EggPage() {
       const data = await res.json();
       
       if (data.length > 0) {
-        setEggPrice(data[0].egg_price || 6);
-        setBananaPrice(data[0].banana_price || 6);
+        setEggPrice(data[0].egg_price ?? 6);
+        setBananaPrice(data[0].banana_price ?? 6);
       }
       
       const daysInMonth = new Date(year, month, 0).getDate();
@@ -123,7 +123,7 @@ export default function EggPage() {
               [field]:
                 field === 'payer'
                   ? value
-                  : isNaN(value) ? 0 : value || 0,
+                  : Math.max(0, Math.trunc(Number(value) || 0)),
             }
           : row
       )
@@ -139,10 +139,10 @@ export default function EggPage() {
         .map(r => ({
           date: r.date,
           payer: r.payer || null,
-          egg_m: r.egg_m || 0,
-          egg_f: r.egg_f || 0,
-          banana_m: r.banana_m || 0,
-          banana_f: r.banana_f || 0,
+          egg_m: Math.max(0, Math.trunc(Number(r.egg_m) || 0)),
+          egg_f: Math.max(0, Math.trunc(Number(r.egg_f) || 0)),
+          banana_m: Math.max(0, Math.trunc(Number(r.banana_m) || 0)),
+          banana_f: Math.max(0, Math.trunc(Number(r.banana_f) || 0)),
           egg_price: eggPrice,
           banana_price: bananaPrice,
         }));
