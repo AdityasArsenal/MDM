@@ -20,6 +20,7 @@ import {
   calculateTotals
 } from './utils';
 import MilkTableRow from './MilkTableRow';
+import { authFetch } from '../utils/api';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -58,7 +59,7 @@ export default function Milk() {
     
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/milk/${year}/${month}?user_id=${userId}`, {
+      const res = await authFetch(`${BACKEND_URL}/api/milk/${year}/${month}`, {
         headers: { 'ngrok-skip-browser-warning': 'true' }
       });
       
@@ -66,23 +67,24 @@ export default function Milk() {
         throw new Error(`Failed to load data: ${res.status} ${res.statusText}`);
       }
       
-      const data = await res.json();
+      const body = await res.json().catch(() => null);
+      const data: any[] = Array.isArray(body) ? body : [];
       
       const daysInMonth = new Date(year, month, 0).getDate();
       const allDays: MilkRow[] = [];
       
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const existing = data.find((m: any) => m.date.startsWith(dateStr));
+        const existing = data.find((m: any) => typeof m?.date === 'string' && m.date.startsWith(dateStr));
         
         allDays.push(existing ? {
           id: day,
           date: dateStr,
-          children: existing.children || 0,
-          milk_open: existing.milk_open || 0,
-          ragi_open: existing.ragi_open || 0,
-          milk_rcpt: existing.milk_rcpt || 0,
-          ragi_rcpt: existing.ragi_rcpt || 0,
+          children: Math.max(0, Math.trunc(Number(existing.children) || 0)),
+          milk_open: Number(existing.milk_open) || 0,
+          ragi_open: Number(existing.ragi_open) || 0,
+          milk_rcpt: Number(existing.milk_rcpt) || 0,
+          ragi_rcpt: Number(existing.ragi_rcpt) || 0,
           dist_type: existing.dist_type || 'milk & ragi'
         } : {
           id: day,
@@ -115,10 +117,14 @@ export default function Milk() {
       const idx = newRows.findIndex(r => r.id === id);
       
       if (idx !== -1) {
-        // Ensure numeric fields never become NaN or undefined
-        if (field === 'children' || field === 'milk_open' || field === 'ragi_open' || 
-            field === 'milk_rcpt' || field === 'ragi_rcpt') {
-          (newRows[idx] as any)[field] = isNaN(value) ? 0 : (value || 0);
+        // Typed fields never become NaN or negative. Opening stock may legitimately be negative.
+        if (field === 'children') {
+          // children is a whole-number column in the database
+          (newRows[idx] as any)[field] = Math.max(0, Math.trunc(Number(value) || 0));
+        } else if (field === 'milk_rcpt' || field === 'ragi_rcpt') {
+          (newRows[idx] as any)[field] = Math.max(0, Number(value) || 0);
+        } else if (field === 'milk_open' || field === 'ragi_open') {
+          (newRows[idx] as any)[field] = Number(value) || 0;
         } else {
           (newRows[idx] as any)[field] = value;
         }
@@ -136,32 +142,33 @@ export default function Milk() {
   const saveData = async () => {
     setSaving(true);
     try {
+      const clean = (n: number) => (Number.isFinite(n) && Math.abs(n) >= 1e-9 ? n : 0);
       const records = rows.map(r => ({
         date: r.date,
-        children: r.children || 0,
-        milk_open: r.milk_open || 0,
-        ragi_open: r.ragi_open || 0,
-        milk_rcpt: r.milk_rcpt || 0,
-        ragi_rcpt: r.ragi_rcpt || 0,
+        children: Math.max(0, Math.trunc(clean(r.children))),
+        milk_open: clean(r.milk_open),
+        ragi_open: clean(r.ragi_open),
+        milk_rcpt: clean(r.milk_rcpt),
+        ragi_rcpt: clean(r.ragi_rcpt),
         dist_type: r.dist_type
       }));
 
-      console.log('Saving data:', { user_id: userId, records: records.slice(0, 2) }); // Log first 2 records
+      console.log('Saving data:', { records: records.slice(0, 2) }); // Log first 2 records
 
-      const res = await fetch(`${BACKEND_URL}/api/milk/save`, {
+      const res = await authFetch(`${BACKEND_URL}/api/milk/save`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true'
         },
-        body: JSON.stringify({ user_id: userId, records })
+        body: JSON.stringify({ records })
       });
       
-      const responseData = await res.json();
+      const responseData = await res.json().catch(() => null);
       console.log('Response:', responseData);
       
       if (!res.ok) {
-        throw new Error(responseData.error || 'Failed to save');
+        throw new Error(responseData?.error || `Failed to save (${res.status})`);
       }
       
       alert('Saved!');

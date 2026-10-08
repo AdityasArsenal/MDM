@@ -84,3 +84,9 @@ export const calculateTotals = (rows: MilkRow[]) => {
     return acc;
   }, { children: 0, milk_rcpt: 0, ragi_rcpt: 0, milk_dist: 0, ragi_dist: 0, sugar: 0 });
 };
+
+// toFixed that never shows "-0.000" for tiny negative float noise; real negatives keep their minus sign
+export const fmt = (n: number, digits = 3) => {
+  const s = (Number.isFinite(n) ? n : 0).toFixed(digits);
+  return Number(s) === 0 ? (0).toFixed(digits) : s;
+};
