@@ -1,6 +1,11 @@
 from flask import Blueprint, request, jsonify, g
 from auth_session import load_session_user
-from db import get_stock_records, insert_stock, get_meal_plans
+from calendar import monthrange
+from db import (
+    get_stock_records, insert_stock, get_meal_plans,
+    get_meal_rates, get_latest_meal_rates_before,
+)
+from meal_calc import rates_from_row, usage
 from datetime import datetime
 import math
 
@@ -109,83 +114,82 @@ def save_stock():
         print(f"Error saving stock: {e}")
         return jsonify({'error': str(e)}), 500
 
+def _resolve_rates(user_id, year, month):
+    """Meal rates for the month: exact month, else nearest earlier, else none. Read-only."""
+    row = get_meal_rates(user_id, year, month)
+    if row:
+        return 'saved', None, rates_from_row(row)
+    earlier = get_latest_meal_rates_before(user_id, year, month)
+    if earlier:
+        return 'inherited', {'year': earlier['year'], 'month': earlier['month']}, rates_from_row(earlier)
+    return 'none', None, None
+
+
 @stock_bp.route('/calc/<int:year>/<int:month>', methods=['GET'])
 def get_stock_with_calculations(year, month):
-    user_id = g.user_id
-    if not user_id:
-        return jsonify({'error': 'User ID required'}), 400
+    if not 2000 <= year <= 2100:
+        return jsonify({'error': 'year must be between 2000 and 2100'}), 400
+    if not 1 <= month <= 12:
+        return jsonify({'error': 'month must be between 1 and 12'}), 400
 
     try:
+        user_id = g.user_id
+        if not user_id:
+            return jsonify({'error': 'User ID required'}), 400
+
+        source, inherited_from, rates = _resolve_rates(user_id, year, month)
         stock_records = get_stock_records(user_id, year, month) or []
         meal_plans = get_meal_plans(user_id, year, month) or []
+
+        stock_lookup = {}
+        for r in stock_records:
+            date_key = r['date'] if isinstance(r['date'], str) else r['date'].isoformat()
+            stock_lookup[f"{date_key}|{r['grade']}"] = r
+
+        meal_lookup = {
+            (m['date'] if isinstance(m['date'], str) else m['date'].isoformat()): m
+            for m in meal_plans
+        }
+
+        days_in_month = monthrange(year, month)[1]
+        result = []
+
+        for day in range(1, days_in_month + 1):
+            date_str = f"{year}-{month:02d}-{day:02d}"
+
+            for grade in ['1-5', '6-10']:
+                stock_row = stock_lookup.get(f"{date_str}|{grade}", {})
+                is_1to5 = grade == '1-5'
+
+                meal = meal_lookup.get(date_str, {})
+                cnt = meal.get('cnt_1to5' if is_1to5 else 'cnt_6to10', 0)
+
+                used = {'rice': 0, 'wheat': 0, 'oil': 0, 'pulse': 0}
+                if rates is not None:
+                    used = usage(rates['g1_5' if is_1to5 else 'g6_10'], cnt,
+                                 meal.get('meal_type'), meal.get('has_pulses', False))
+
+                result.append({
+                    'date': date_str,
+                    'grade': grade,
+                    'rice_add': float(stock_row.get('rice_add', 0) or 0),
+                    'wheat_add': float(stock_row.get('wheat_add', 0) or 0),
+                    'oil_add': float(stock_row.get('oil_add', 0) or 0),
+                    'pulse_add': float(stock_row.get('pulse_add', 0) or 0),
+                    'rice_open': float(stock_row['rice_open']) if stock_row.get('rice_open') is not None else (0 if day == 1 else None),
+                    'wheat_open': float(stock_row['wheat_open']) if stock_row.get('wheat_open') is not None else (0 if day == 1 else None),
+                    'oil_open': float(stock_row['oil_open']) if stock_row.get('oil_open') is not None else (0 if day == 1 else None),
+                    'pulse_open': float(stock_row['pulse_open']) if stock_row.get('pulse_open') is not None else (0 if day == 1 else None),
+                    'rice_used': round(used['rice'], 3),
+                    'wheat_used': round(used['wheat'], 3),
+                    'oil_used': round(used['oil'], 3),
+                    'pulse_used': round(used['pulse'], 3),
+                })
+
+        return jsonify({
+            'rates': {'source': source, 'inherited_from': inherited_from},
+            'rows': result,
+        })
     except Exception as e:
         print(f"Error loading stock calc data: {e}")
         return jsonify({'error': 'Failed to load stock data'}), 500
-
-    # Create lookup maps
-    stock_lookup = {}
-    for r in stock_records:
-        date_key = r['date'] if isinstance(r['date'], str) else r['date'].isoformat()
-        key = f"{date_key}|{r['grade']}"
-        stock_lookup[key] = r
-
-    meal_lookup = {
-        (m['date'] if isinstance(m['date'], str) else m['date'].isoformat()): m
-        for m in meal_plans
-    }
-
-    # Generate all days of the month
-    from calendar import monthrange
-    days_in_month = monthrange(year, month)[1]
-    
-    result = []
-    
-    for day in range(1, days_in_month + 1):
-        date_str = f"{year}-{month:02d}-{day:02d}"
-        
-        for grade in ['1-5', '6-10']:
-            key = f"{date_str}|{grade}"
-            stock_row = stock_lookup.get(key, {})
-            is_1to5 = grade == '1-5'
-            
-            # Get meal data
-            meal = meal_lookup.get(date_str, {})
-            cnt = meal.get('cnt_1to5' if is_1to5 else 'cnt_6to10', 0)
-            meal_type = meal.get('meal_type')
-            has_pulses = meal.get('has_pulses', False)
-
-            # Calculate usage
-            rice_used = wheat_used = oil_used = pulse_used = 0
-            if cnt and meal_type:
-                rice_rate = 0.1 if is_1to5 else 0.15
-                wheat_rate = 0.1 if is_1to5 else 0.15
-                oil_rate = 0.005 if is_1to5 else 0.0075
-                pulse_rate = 0.02 if is_1to5 else 0.03
-
-                if meal_type == 'rice':
-                    rice_used = cnt * rice_rate
-                elif meal_type == 'wheat':
-                    wheat_used = cnt * wheat_rate
-
-                oil_used = cnt * oil_rate
-                if has_pulses:
-                    pulse_used = cnt * pulse_rate
-
-            result.append({
-                'date': date_str,
-                'grade': grade,
-                'rice_add': float(stock_row.get('rice_add', 0) or 0),
-                'wheat_add': float(stock_row.get('wheat_add', 0) or 0),
-                'oil_add': float(stock_row.get('oil_add', 0) or 0),
-                'pulse_add': float(stock_row.get('pulse_add', 0) or 0),
-                'rice_open': float(stock_row['rice_open']) if stock_row.get('rice_open') is not None else (0 if day == 1 else None),
-                'wheat_open': float(stock_row['wheat_open']) if stock_row.get('wheat_open') is not None else (0 if day == 1 else None),
-                'oil_open': float(stock_row['oil_open']) if stock_row.get('oil_open') is not None else (0 if day == 1 else None),
-                'pulse_open': float(stock_row['pulse_open']) if stock_row.get('pulse_open') is not None else (0 if day == 1 else None),
-                'rice_used': round(rice_used, 3),
-                'wheat_used': round(wheat_used, 3),
-                'oil_used': round(oil_used, 3),
-                'pulse_used': round(pulse_used, 3),
-            })
-
-    return jsonify(result)
