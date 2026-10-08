@@ -1,5 +1,6 @@
 from supabase import create_client
 import os
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -283,10 +284,15 @@ def get_user_by_google_id(google_id):
         print(f"Error getting user: {e}")
         raise e
 
+def utc_now_iso():
+    """Current time in UTC as an ISO 8601 string, for timestamp filters and columns"""
+    return datetime.now(timezone.utc).isoformat()
+
+
 def get_active_subscription(user_id):
     """Get active subscription for user"""
     try:
-        result = supabase.table("subscriptions").select("*").eq("user_id", user_id).eq("status", "active").gte("end_date", "now()").order("end_date", desc=True).limit(1).execute()
+        result = supabase.table("subscriptions").select("*").eq("user_id", user_id).eq("status", "active").gte("end_date", utc_now_iso()).order("end_date", desc=True).limit(1).execute()
         return result.data[0] if result.data else None
     except Exception as e:
         print(f"Error getting subscription: {e}")
@@ -320,7 +326,7 @@ def get_payment_by_order_id(order_id):
 def update_payment_status(order_id, status, pp_data=None):
     """Update payment status"""
     try:
-        data = {"status": status, "updated_at": "now()"}
+        data = {"status": status, "updated_at": utc_now_iso()}
         if pp_data:
             data["pp_data"] = pp_data
             
@@ -346,10 +352,39 @@ def insert_subscription(user_id, payment_id, plan_type, start_date, end_date, st
         print(f"Error inserting subscription: {e}")
         raise e
 
+def get_subscription_by_payment_id(payment_id):
+    """Get the subscription created for a payment, or None"""
+    try:
+        result = supabase.table("subscriptions").select("*").eq("payment_id", payment_id).limit(1).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        print(f"Error getting subscription by payment: {e}")
+        raise e
+
+def get_recent_pending_payment(user_id, since_iso):
+    """Get a pending payment of this user created at or after since_iso, or None.
+    Assumes payments.created_at exists. 'pending' is the lowercase value insert_payment writes."""
+    try:
+        result = supabase.table("payments").select("*").eq("user_id", user_id).eq("status", "pending").gte("created_at", since_iso).limit(1).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        print(f"Error getting recent pending payment: {e}")
+        raise e
+
+def get_pending_payments_for_user(user_id, since_iso, limit=3):
+    """Get the user's unfinished payments created at or after since_iso, newest first.
+    Matches 'pending' (written by insert_payment) and 'PENDING' (written by the status check)."""
+    try:
+        result = supabase.table("payments").select("*").eq("user_id", user_id).in_("status", ["pending", "PENDING"]).gte("created_at", since_iso).order("created_at", desc=True).limit(limit).execute()
+        return result.data or []
+    except Exception as e:
+        print(f"Error getting pending payments: {e}")
+        raise e
+
 def get_subscription_by_user_id(user_id):
     """Get active subscription by user ID"""
     try:
-        result = supabase.table("subscriptions").select("*").eq("user_id", user_id).eq("status", "active").gte("end_date", "now()").order("created_at", desc=True).limit(1).execute()
+        result = supabase.table("subscriptions").select("*").eq("user_id", user_id).eq("status", "active").gte("end_date", utc_now_iso()).order("end_date", desc=True).limit(1).execute()
         return result.data[0] if result.data else None
     except Exception as e:
         print(f"Error getting subscription: {e}")
@@ -367,7 +402,7 @@ def get_subscription_history(user_id):
 def check_active_subscription(user_id):
     """Check if user has active subscription"""
     try:
-        result = supabase.table("subscriptions").select("id").eq("user_id", user_id).eq("status", "active").gte("end_date", "now()").limit(1).execute()
+        result = supabase.table("subscriptions").select("id").eq("user_id", user_id).eq("status", "active").gte("end_date", utc_now_iso()).limit(1).execute()
         return len(result.data) > 0
     except Exception as e:
         print(f"Error checking subscription: {e}")
@@ -376,7 +411,7 @@ def check_active_subscription(user_id):
 def expire_old_subscriptions():
     """Expire old subscriptions"""
     try:
-        result = supabase.table("subscriptions").update({"status": "expired"}).eq("status", "active").lt("end_date", "now()").execute()
+        result = supabase.table("subscriptions").update({"status": "expired"}).eq("status", "active").lt("end_date", utc_now_iso()).execute()
         return result.data
     except Exception as e:
         print(f"Error expiring subscriptions: {e}")
