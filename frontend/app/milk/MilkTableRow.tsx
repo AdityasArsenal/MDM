@@ -101,7 +101,6 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false }: MilkTableRowP
           step="1"
           min="0"
           className="w-20"
-          disabled={sunday}
         />
       </TableCell>
       <TableCell>
