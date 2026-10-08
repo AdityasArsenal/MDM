@@ -16,10 +16,11 @@ interface EggTableRowProps {
   index: number;
   eggPrice: number;
   bananaPrice: number;
+  payerMissing?: boolean;
   onChange: (index: number, field: keyof EggRecord, value: any) => void;
 }
 
-const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, onChange }: EggTableRowProps) => {
+const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, payerMissing, onChange }: EggTableRowProps) => {
   const eggTotal = row.egg_m + row.egg_f;
   const eggMoney = eggTotal * eggPrice;
   const bananaTotal = row.banana_m + row.banana_f;
@@ -31,7 +32,7 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, onChange }: EggTa
     <TableRow>
       <TableCell className="text-xs">{new Date(row.date).getDate()}</TableCell>
       <TableCell>
-        <div className="flex flex-col gap-1">
+        <div className={`flex flex-col gap-1 rounded ${payerMissing ? 'ring-2 ring-red-500 p-0.5' : ''}`}>
           <button
             onClick={() => onChange(index, 'payer', 'APF')}
             className={`px-2 py-1 text-xs rounded ${
@@ -57,6 +58,7 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, onChange }: EggTa
           type="number" 
           min={0}
           step={1}
+          placeholder="0"
           value={row.egg_m || ''} 
           onChange={e => onChange(index, 'egg_m', Number(e.target.value))}
           className="w-14 h-8 text-xs p-1" 
@@ -67,6 +69,7 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, onChange }: EggTa
           type="number" 
           min={0}
           step={1}
+          placeholder="0"
           value={row.egg_f || ''} 
           onChange={e => onChange(index, 'egg_f', Number(e.target.value))}
           className="w-14 h-8 text-xs p-1" 
@@ -79,6 +82,7 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, onChange }: EggTa
           type="number" 
           min={0}
           step={1}
+          placeholder="0"
           value={row.banana_m || ''} 
           onChange={e => onChange(index, 'banana_m', Number(e.target.value))}
           className="w-14 h-8 text-xs p-1" 
@@ -89,6 +93,7 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, onChange }: EggTa
           type="number" 
           min={0}
           step={1}
+          placeholder="0"
           value={row.banana_f || ''} 
           onChange={e => onChange(index, 'banana_f', Number(e.target.value))}
           className="w-14 h-8 text-xs p-1" 
