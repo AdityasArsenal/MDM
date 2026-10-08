@@ -9,14 +9,14 @@ export interface MealRow {
   cnt_1to5: number;
   cnt_6to10: number;
   meal_type: MealType;
-  has_pulses: boolean;
+  has_pulses: boolean | null; // null = not chosen yet
 }
 
 // Pure calculation functions - no React dependencies
 export const calculateMeal = (
   count: number,
   mealType: MealType,
-  hasPulses: boolean,
+  hasPulses: boolean | null, // null counts as no pulses
   isGrade1to5: boolean
 ) => {
   const riceVal = isGrade1to5 ? 0.1 : 0.15;
@@ -38,10 +38,10 @@ export const calculateMeal = (
   return { rice: riceAmount, wheat: wheatAmount, oil: oilAmount, pulses: pulsesAmount, sadilvaru: sadilvaruAmount };
 };
 
-export const calc1to5 = (count: number, mealType: MealType, hasPulses: boolean) =>
+export const calc1to5 = (count: number, mealType: MealType, hasPulses: boolean | null) =>
   calculateMeal(count, mealType, hasPulses, true);
 
-export const calc6to10 = (count: number, mealType: MealType, hasPulses: boolean) =>
+export const calc6to10 = (count: number, mealType: MealType, hasPulses: boolean | null) =>
   calculateMeal(count, mealType, hasPulses, false);
 
 // Date helper functions - pure, no side effects
