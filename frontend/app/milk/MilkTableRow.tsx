@@ -49,7 +49,7 @@ const DraftNumberInput = ({ value, onCommit }: { value: number; onCommit: (n: nu
 
 interface MilkTableRowProps {
   row: MilkRow;
-  onHandleChange: (id: number, field: keyof MilkRow, value: any) => void;
+  onHandleChange: (id: number, field: keyof MilkRow, value: MilkRow[keyof MilkRow]) => void;
   isFirstDay?: boolean;
   rates: MilkRates | null;
 }

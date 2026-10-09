@@ -5,10 +5,13 @@ import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { saveToken } from './utils/api';
 
+interface CredentialResponse {
+  credential: string;
+}
+
 declare global {
   interface Window {
-    google: any;
-    handleCredentialResponse: (response: any) => void;
+    handleCredentialResponse: (response: CredentialResponse) => void;
   }
 }
 
@@ -23,7 +26,7 @@ export default function Home() {
   const [response, setResponse] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
-  const handleCredentialResponse = async (response: any) => {
+  const handleCredentialResponse = async (response: CredentialResponse) => {
     setLoading(true);
     setResponse("Sending to backend...");
 
@@ -51,8 +54,8 @@ export default function Home() {
           router.push('/dashboard');
         }
       }
-    } catch (error: any) {
-      setResponse("Error connecting to backend: " + error.message);
+    } catch (error) {
+      setResponse("Error connecting to backend: " + (error as Error).message);
     } finally {
       setLoading(false);
     }

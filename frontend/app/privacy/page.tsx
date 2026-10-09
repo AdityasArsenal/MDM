@@ -29,7 +29,7 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-2xl font-bold text-gray-800 mb-4">1. Our Commitment to Privacy</h2>
               <p className="text-lg text-gray-700">
-                Data Canvas ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we handle your information when you use our web-based automation tool at gov.nonexistential.dev. Your use of our service signifies your acceptance of this policy.
+                Data Canvas (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how we handle your information when you use our web-based automation tool at gov.nonexistential.dev. Your use of our service signifies your acceptance of this policy.
               </p>
             </section>
 
@@ -65,7 +65,7 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-2xl font-bold text-gray-800 mb-4">5. Use of Cookies</h2>
               <p className="text-lg text-gray-700">
-                We use cookies to enhance your experience on our site. These are small files that a site or its service provider transfers to your computer's hard drive through your web browser (if you allow) that enable the site's or service provider's systems to recognize your browser and capture and remember certain information. We primarily use cookies to understand and save your preferences for future visits and to compile aggregate data about site traffic and site interaction.
+                We use cookies to enhance your experience on our site. These are small files that a site or its service provider transfers to your computer&apos;s hard drive through your web browser (if you allow) that enable the site&apos;s or service provider&apos;s systems to recognize your browser and capture and remember certain information. We primarily use cookies to understand and save your preferences for future visits and to compile aggregate data about site traffic and site interaction.
               </p>
             </section>
 
