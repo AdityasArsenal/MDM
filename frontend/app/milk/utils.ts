@@ -9,6 +9,21 @@ export interface MilkRow {
   dist_type: 'milk & ragi' | 'only milk' | null; // null = not chosen yet
 }
 
+// Per-child rates for one month. Units: milk in ml, ragi in grams, sugar in rupees.
+export interface MilkRates {
+  milk_ml: number;
+  ragi_g: number;
+  sugar_rupees: number;
+}
+
+export interface RatesResponse {
+  source: 'saved' | 'inherited' | 'none';
+  year: number;
+  month: number;
+  inherited_from: { year: number; month: number } | null;
+  rates: MilkRates | null;
+}
+
 // Date helper functions
 export const getDayName = (dateStr: string) => {
   const d = new Date(dateStr + 'T12:00:00');
@@ -17,7 +32,7 @@ export const getDayName = (dateStr: string) => {
 
 export const isSunday = (dateStr: string) => new Date(dateStr + 'T12:00:00').getDay() === 0;
 
-// Calculation functions
+// Calculation functions. Stock values: milk in LITRES, ragi in KG.
 export const calculateTotalMilk = (milk_open: number, milk_rcpt: number) => {
   return (milk_open || 0) + (milk_rcpt || 0);
 };
@@ -26,14 +41,17 @@ export const calculateTotalRagi = (ragi_open: number, ragi_rcpt: number) => {
   return (ragi_open || 0) + (ragi_rcpt || 0);
 };
 
-export const calculateMilkDistribution = (children: number) => {
-  return (children || 0) * 0.018;
+// Milk distributed, in LITRES. Counted every day there are children.
+export const calculateMilkDistribution = (children: number, rates: MilkRates | null) => {
+  if (!rates) return 0;
+  return ((children || 0) * rates.milk_ml) / 1000;
 };
 
-// Ragi depends only on the user's choice, never on the day of the week.
+// Ragi distributed, in KG. Depends only on the user's choice, never on the day of the week.
 // 'only milk' and not-chosen (null) give 0.
-export const calculateRagiDistribution = (children: number, dist_type: string | null) => {
-  return dist_type === 'milk & ragi' ? (children || 0) * 0.005 : 0;
+export const calculateRagiDistribution = (children: number, dist_type: string | null, rates: MilkRates | null) => {
+  if (!rates || dist_type !== 'milk & ragi') return 0;
+  return ((children || 0) * rates.ragi_g) / 1000;
 };
 
 export const calculateClosingMilk = (totalMilk: number, distMilk: number) => {
@@ -44,41 +62,44 @@ export const calculateClosingRagi = (totalRagi: number, distRagi: number) => {
   return (totalRagi || 0) - (distRagi || 0);
 };
 
-export const calculateSugar = (children: number) => {
-  return (children || 0) * 0.44;
+// Sugar in RUPEES (not divided by 1000)
+export const calculateSugar = (children: number, rates: MilkRates | null) => {
+  if (!rates) return 0;
+  return (children || 0) * rates.sugar_rupees;
 };
 
-// Recalculate opening stock for subsequent rows
-export const recalculateOpeningStock = (rows: MilkRow[], startIdx: number): MilkRow[] => {
+// Recompute opening stock from startIdx onwards. Day 1 (index 0) is never derived.
+// Returns new row objects; the input rows are not modified.
+export const recalculateOpeningStock = (rows: MilkRow[], rates: MilkRates | null, startIdx: number): MilkRow[] => {
   const newRows = [...rows];
-  
-  for (let i = startIdx; i < newRows.length; i++) {
-    const curr = newRows[i];
-    const prev = i > 0 ? newRows[i - 1] : null;
-    
-    if (prev) {
-      const prevTotalMilk = calculateTotalMilk(prev.milk_open || 0, prev.milk_rcpt || 0);
-      const prevDistMilk = calculateMilkDistribution(prev.children || 0);
-      curr.milk_open = calculateClosingMilk(prevTotalMilk, prevDistMilk);
-      
-      const prevTotalRagi = calculateTotalRagi(prev.ragi_open || 0, prev.ragi_rcpt || 0);
-      const prevDistRagi = calculateRagiDistribution(prev.children || 0, prev.dist_type);
-      curr.ragi_open = calculateClosingRagi(prevTotalRagi, prevDistRagi);
-    }
+
+  for (let i = Math.max(startIdx, 1); i < newRows.length; i++) {
+    const prev = newRows[i - 1];
+
+    const prevTotalMilk = calculateTotalMilk(prev.milk_open || 0, prev.milk_rcpt || 0);
+    const prevDistMilk = calculateMilkDistribution(prev.children || 0, rates);
+    const prevTotalRagi = calculateTotalRagi(prev.ragi_open || 0, prev.ragi_rcpt || 0);
+    const prevDistRagi = calculateRagiDistribution(prev.children || 0, prev.dist_type, rates);
+
+    newRows[i] = {
+      ...newRows[i],
+      milk_open: calculateClosingMilk(prevTotalMilk, prevDistMilk),
+      ragi_open: calculateClosingRagi(prevTotalRagi, prevDistRagi),
+    };
   }
-  
+
   return newRows;
 };
 
 // Calculate grand totals
-export const calculateTotals = (rows: MilkRow[]) => {
+export const calculateTotals = (rows: MilkRow[], rates: MilkRates | null) => {
   return rows.reduce((acc, r) => {
     acc.children += r.children || 0;
     acc.milk_rcpt += r.milk_rcpt || 0;
     acc.ragi_rcpt += r.ragi_rcpt || 0;
-    acc.milk_dist += calculateMilkDistribution(r.children || 0);
-    acc.ragi_dist += calculateRagiDistribution(r.children || 0, r.dist_type);
-    acc.sugar += calculateSugar(r.children || 0);
+    acc.milk_dist += calculateMilkDistribution(r.children || 0, rates);
+    acc.ragi_dist += calculateRagiDistribution(r.children || 0, r.dist_type, rates);
+    acc.sugar += calculateSugar(r.children || 0, rates);
     return acc;
   }, { children: 0, milk_rcpt: 0, ragi_rcpt: 0, milk_dist: 0, ragi_dist: 0, sugar: 0 });
 };
