@@ -16,12 +16,31 @@ import { Input } from '@/app/components/ui/input';
 import { Button } from '@/app/components/ui/button';
 import { PageFooter } from '@/app/components/PageFooter';
 import EggTableRow from './EggTableRow';
+import { RatesToast } from './RatesToast';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 if (!BACKEND_URL) {
   throw new Error("NEXT_PUBLIC_BACKEND_URL is undefined. App cannot start.");
 }
+
+interface RatesResponse {
+  source: 'saved' | 'inherited' | 'none';
+  year: number;
+  month: number;
+  inherited_from: { year: number; month: number } | null;
+  rates: { egg_price: number; banana_price: number } | null;
+}
+
+// Empty or invalid box -> null; otherwise the number (>= 0)
+const parsePrice = (s: string): number | null => {
+  if (s.trim() === '') return null;
+  const n = Number(s);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+};
+
+const monthYearLabel = (y: number, m: number) =>
+  `${new Date(y, m - 1).toLocaleString('default', { month: 'long' })} ${y}`;
 
 interface EggRecord {
   date: string;
@@ -39,8 +58,17 @@ export default function EggPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [rows, setRows] = useState<EggRecord[]>([]);
-  const [eggPrice, setEggPrice] = useState(6);
-  const [bananaPrice, setBananaPrice] = useState(6);
+  const [eggPriceText, setEggPriceText] = useState('');
+  const [bananaPriceText, setBananaPriceText] = useState('');
+  const [ratesSource, setRatesSource] = useState<RatesResponse['source'] | null>(null);
+  // Prices the backend has saved for the selected month (null if not saved for this month)
+  const [savedRates, setSavedRates] = useState<{ egg_price: number; banana_price: number } | null>(null);
+  const [toast, setToast] = useState<{ text: string; key: number } | null>(null);
+  const ratesReq = useRef(0);
+  const eggPrice = parsePrice(eggPriceText) ?? 0;
+  const bananaPrice = parsePrice(bananaPriceText) ?? 0;
+  const pricesValid = parsePrice(eggPriceText) !== null && parsePrice(bananaPriceText) !== null;
+  const locked = ratesSource === 'none' && !pricesValid;
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -72,11 +100,6 @@ export default function EggPage() {
       if (!res.ok) throw new Error('Failed to load');
       
       const data = await res.json();
-      
-      if (data.length > 0) {
-        setEggPrice(data[0].egg_price ?? 6);
-        setBananaPrice(data[0].banana_price ?? 6);
-      }
       
       const daysInMonth = new Date(year, month, 0).getDate();
       const allDays: EggRecord[] = [];
@@ -114,6 +137,48 @@ export default function EggPage() {
     loadData();
   }, [loadData]);
 
+  const loadRates = useCallback(async () => {
+    if (!userId) return;
+    const req = ++ratesReq.current;
+    // Reset first so nothing stale shows for the new month
+    setToast(null);
+    setEggPriceText('');
+    setBananaPriceText('');
+    setRatesSource(null);
+    setSavedRates(null);
+    try {
+      const res = await authFetch(`${BACKEND_URL}/api/egg/rates/${year}/${month}`, {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      });
+      const data: RatesResponse = await res.json();
+      if (!res.ok) throw new Error((data as any).error || 'Failed to load rates');
+      if (req !== ratesReq.current) return;
+      setRatesSource(data.source);
+      if (data.rates) {
+        setEggPriceText(String(data.rates.egg_price));
+        setBananaPriceText(String(data.rates.banana_price));
+      }
+      if (data.source === 'saved') {
+        setSavedRates(data.rates);
+        setToast({ text: `Rates for ${monthYearLabel(year, month)} are saved.`, key: Date.now() });
+      } else if (data.source === 'inherited' && data.inherited_from) {
+        setToast({
+          text: `Rates for ${monthYearLabel(year, month)} are not saved yet. Showing ${monthYearLabel(data.inherited_from.year, data.inherited_from.month)}'s rates. You can configure rates for this month by editing the prices.`,
+          key: Date.now(),
+        });
+      }
+    } catch (err: any) {
+      if (req !== ratesReq.current) return;
+      alert('Error: ' + err.message);
+    }
+  }, [userId, year, month]);
+
+  useEffect(() => {
+    loadRates();
+  }, [loadRates]);
+
+  const clearToast = useCallback(() => setToast(null), []);
+
   const [missingDates, setMissingDates] = useState<string[]>([]);
 
   const handleChange = useCallback((idx: number, field: keyof EggRecord, value: any) => {
@@ -146,8 +211,40 @@ export default function EggPage() {
       alert('Choose APF or GOV for: ' + names.join(', '));
       return;
     }
+    const egg = parsePrice(eggPriceText);
+    const banana = parsePrice(bananaPriceText);
+    if (egg === null) {
+      alert('Enter a valid egg price (ಮೊಟ್ಟೆ ಬೆಲೆ), 0 or more.');
+      return;
+    }
+    if (banana === null) {
+      alert('Enter a valid banana price (ಬಾಳೆ ಬೆಲೆ), 0 or more.');
+      return;
+    }
     setSaving(true);
     try {
+      // Save the monthly rates first when they are not saved or have changed
+      if (!savedRates || savedRates.egg_price !== egg || savedRates.banana_price !== banana) {
+        const rateRes = await authFetch(`${BACKEND_URL}/api/egg/rates/${year}/${month}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+          },
+          body: JSON.stringify({ rates: { egg_price: egg, banana_price: banana } })
+        });
+        const rateData = await rateRes.json();
+        if (!rateRes.ok) {
+          throw new Error(rateData.error || 'Failed to save rates');
+        }
+        setRatesSource(rateData.source);
+        setSavedRates(rateData.rates);
+        if (rateData.rates) {
+          setEggPriceText(String(rateData.rates.egg_price));
+          setBananaPriceText(String(rateData.rates.banana_price));
+        }
+      }
+
       // Only send records that have data (payer selected or any quantity entered)
       const records = rows
         .filter(r => r.payer || r.egg_m || r.egg_f || r.banana_m || r.banana_f)
@@ -158,8 +255,6 @@ export default function EggPage() {
           egg_f: Math.max(0, Math.trunc(Number(r.egg_f) || 0)),
           banana_m: Math.max(0, Math.trunc(Number(r.banana_m) || 0)),
           banana_f: Math.max(0, Math.trunc(Number(r.banana_f) || 0)),
-          egg_price: eggPrice,
-          banana_price: bananaPrice,
         }));
 
       const res = await authFetch(`${BACKEND_URL}/api/egg/save`, {
@@ -174,6 +269,7 @@ export default function EggPage() {
       const responseData = await res.json();
       
       if (!res.ok) {
+        // code 'rates_not_configured' also lands here with its message
         throw new Error(responseData.error || 'Failed to save');
       }
       
@@ -224,6 +320,7 @@ export default function EggPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-2">
+      {toast && <RatesToast key={toast.key} text={toast.text} onDone={clearToast} />}
       <div className="max-w-full mx-auto">
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <Button 
@@ -255,23 +352,29 @@ export default function EggPage() {
           <div className="flex gap-2 mb-4">
             <div className="flex-1">
               <label className="text-xs">ಮೊಟ್ಟೆ ಬೆಲೆ</label>
-              <Input type="number" value={eggPrice} 
-                onChange={e => setEggPrice(Number(e.target.value))} 
-                className="w-full" />
+              <Input type="number" min={0} value={eggPriceText} placeholder="0"
+                onChange={e => setEggPriceText(e.target.value)} 
+                className={`w-full ${locked ? 'ring-2 ring-orange-500' : ''}`} />
             </div>
             <div className="flex-1">
               <label className="text-xs">ಬಾಳೆ ಬೆಲೆ</label>
-              <Input type="number" value={bananaPrice} 
-                onChange={e => setBananaPrice(Number(e.target.value))} 
-                className="w-full" />
+              <Input type="number" min={0} value={bananaPriceText} placeholder="0"
+                onChange={e => setBananaPriceText(e.target.value)} 
+                className={`w-full ${locked ? 'ring-2 ring-orange-500' : ''}`} />
             </div>
           </div>
 
+          {locked && (
+            <p className="mb-4 text-sm font-semibold text-orange-600">
+              Rates are not set yet. Enter the egg and banana prices to start.
+            </p>
+          )}
+
           <div className="flex gap-2">
-            <Button onClick={saveData} disabled={saving || loading} className="flex-1">
+            <Button onClick={saveData} disabled={saving || loading || locked} className="flex-1">
               {saving ? 'Saving...' : 'Save All'}
             </Button>
-            <Button onClick={handleExportPDF} disabled={loading} className="flex-1">
+            <Button onClick={handleExportPDF} disabled={loading || locked} className="flex-1">
               Download PDF
             </Button>
           </div>
@@ -322,7 +425,9 @@ export default function EggPage() {
           </Table>
         </div>
 
-        {loading ? (
+        {locked ? (
+          <div className="text-center p-8 text-gray-600">Table is locked until the prices are entered.</div>
+        ) : loading ? (
           <div className="text-center p-8">Loading...</div>
         ) : (
           <div className="rounded-md border overflow-x-auto bg-white">
