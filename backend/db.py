@@ -234,6 +234,70 @@ def get_milk_records(user_id, year, month):
         print(f"Error getting milk records: {e}")
         raise e
 
+
+def get_milk_rates(user_id, year, month):
+    """Get the saved milk rates row for an exact month, or None"""
+    try:
+        result = (
+            supabase
+            .table("milk_rates")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("year", year)
+            .eq("month", month)
+            .limit(1)
+            .execute()
+        )
+        return result.data[0] if result.data else None
+
+    except Exception as e:
+        print(f"Error getting milk rates: {e}")
+        raise
+
+
+def get_latest_milk_rates_before(user_id, year, month):
+    """Get the nearest earlier saved milk rates row, or None"""
+    try:
+        result = (
+            supabase
+            .table("milk_rates")
+            .select("*")
+            .eq("user_id", user_id)
+            .or_(f"year.lt.{year},and(year.eq.{year},month.lt.{month})")
+            .order("year", desc=True)
+            .order("month", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return result.data[0] if result.data else None
+
+    except Exception as e:
+        print(f"Error getting earlier milk rates: {e}")
+        raise
+
+
+def upsert_milk_rates(user_id, year, month, row_dict):
+    """Insert or update the milk rates row for one month"""
+    try:
+        payload = {
+            **row_dict,
+            "user_id": user_id,
+            "year": year,
+            "month": month,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        result = (
+            supabase
+            .table("milk_rates")
+            .upsert(payload, on_conflict="user_id,year,month")
+            .execute()
+        )
+        return result.data[0] if result.data else None
+
+    except Exception as e:
+        print(f"Error saving milk rates: {e}")
+        raise
+
 def insert_stock(user_id, date, grade, rice_add, wheat_add, oil_add, pulse_add, rice_open=None, wheat_open=None, oil_open=None, pulse_open=None):
     """Insert or update stock record"""
     try:
