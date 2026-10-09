@@ -171,7 +171,7 @@ def process_payment_completion(payload):
             start_date = datetime.now(timezone.utc)
             end_date = start_date + timedelta(days=30 * months)
 
-            insert_subscription(payment['user_id'], payment['id'], plan, start_date, end_date)
+            insert_subscription(payment['user_id'], payment['id'], start_date, end_date)
             logger.info(f"Subscription created for user {payment['user_id']}, order {merchant_order_id}")
         update_payment_status(merchant_order_id, state, json.dumps(payload, default=str))
         return True

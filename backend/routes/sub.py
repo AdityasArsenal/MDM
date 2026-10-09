@@ -10,6 +10,14 @@ from routes.pay import reconcile_pending_payments
 sub_bp = Blueprint('sub', __name__)
 logger = logging.getLogger(__name__)
 
+def _plan_from_payment(sub, keep_payment):
+    """Subscriptions no longer store the plan; it comes from the joined payment.
+    The response field stays `plan_type` so the frontend does not break."""
+    payment = sub.get('payments') or {}
+    sub['plan_type'] = payment.get('plan')
+    if not keep_payment:
+        sub.pop('payments', None)
+
 @sub_bp.route('/active', methods=['GET'])
 @login_required
 def get_active_subscription():
@@ -21,6 +29,7 @@ def get_active_subscription():
     sub = get_subscription_by_user_id(user_id)
     
     if sub:
+        _plan_from_payment(sub, keep_payment=False)
         sub['id'] = str(sub['id'])
         sub['user_id'] = str(sub['user_id'])
         sub['payment_id'] = str(sub['payment_id']) if sub.get('payment_id') else None
@@ -52,6 +61,7 @@ def get_subscription_history_route():
     
     if subs:
         for sub in subs:
+            _plan_from_payment(sub, keep_payment=True)
             sub['id'] = str(sub['id'])
             sub['user_id'] = str(sub['user_id'])
             sub['payment_id'] = str(sub['payment_id']) if sub.get('payment_id') else None
