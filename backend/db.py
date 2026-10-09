@@ -22,9 +22,7 @@ def insert_egg_record(
     egg_m,
     egg_f,
     banana_m,
-    banana_f,
-    egg_price,
-    banana_price
+    banana_f
 ):
     """Insert or update egg/banana record"""
     try:
@@ -37,8 +35,6 @@ def insert_egg_record(
                 "egg_f": egg_f,
                 "banana_m": banana_m,
                 "banana_f": banana_f,
-                "egg_price": egg_price,
-                "banana_price": banana_price,
             },
             on_conflict="user_id,date"
         ).execute()
@@ -74,6 +70,69 @@ def get_egg_records(user_id, year, month):
 
     except Exception as e:
         print(f"Error getting egg records: {e}")
+        raise
+
+def get_egg_rates(user_id, year, month):
+    """Get the saved egg rates row for an exact month, or None"""
+    try:
+        result = (
+            supabase
+            .table("egg_rates")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("year", year)
+            .eq("month", month)
+            .limit(1)
+            .execute()
+        )
+        return result.data[0] if result.data else None
+
+    except Exception as e:
+        print(f"Error getting egg rates: {e}")
+        raise
+
+
+def get_latest_egg_rates_before(user_id, year, month):
+    """Get the nearest earlier saved egg rates row, or None"""
+    try:
+        result = (
+            supabase
+            .table("egg_rates")
+            .select("*")
+            .eq("user_id", user_id)
+            .or_(f"year.lt.{year},and(year.eq.{year},month.lt.{month})")
+            .order("year", desc=True)
+            .order("month", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return result.data[0] if result.data else None
+
+    except Exception as e:
+        print(f"Error getting earlier egg rates: {e}")
+        raise
+
+
+def upsert_egg_rates(user_id, year, month, row_dict):
+    """Insert or update the egg rates row for one month"""
+    try:
+        payload = {
+            **row_dict,
+            "user_id": user_id,
+            "year": year,
+            "month": month,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        result = (
+            supabase
+            .table("egg_rates")
+            .upsert(payload, on_conflict="user_id,year,month")
+            .execute()
+        )
+        return result.data[0] if result.data else None
+
+    except Exception as e:
+        print(f"Error saving egg rates: {e}")
         raise
 
 def insert_meal_plan(
