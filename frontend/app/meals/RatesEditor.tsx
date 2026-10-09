@@ -17,9 +17,9 @@ interface RatesEditorProps {
 const FIELDS: { key: keyof RateGroup; label: string }[] = [
   { key: 'rice_g', label: 'ಅಕ್ಕಿ (g)' },
   { key: 'wheat_g', label: 'ಗೋಧಿ (g)' },
-  { key: 'oil_g', label: 'ಎಣ್ಣೆ (g)' },
+  { key: 'oil_ml', label: 'ಎಣ್ಣೆ (ml)' },
   { key: 'pulse_g', label: 'ಬೇಳೆ (g)' },
-  { key: 'sadilvaru', label: 'ಸಾದಿಲ್ವಾರು (per child)' },
+  { key: 'sadilvaru', label: 'ಸಾದಿಲ್ವಾರು (₹ per child)' },
 ];
 
 type GroupText = Record<keyof RateGroup, string>;
@@ -27,7 +27,7 @@ type GroupText = Record<keyof RateGroup, string>;
 const toText = (g: RateGroup | undefined): GroupText => ({
   rice_g: g ? String(g.rice_g) : '',
   wheat_g: g ? String(g.wheat_g) : '',
-  oil_g: g ? String(g.oil_g) : '',
+  oil_ml: g ? String(g.oil_ml) : '',
   pulse_g: g ? String(g.pulse_g) : '',
   sadilvaru: g ? String(g.sadilvaru) : '',
 });
@@ -84,7 +84,7 @@ export function RatesEditor({ initial, required, saving, onSave, onClose }: Rate
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2">
       <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-3xl max-h-[90vh] overflow-auto text-black">
         <h2 className="text-lg font-semibold mb-1">Edit Rates</h2>
-        <p className="text-sm mb-3">Enter the quantity per child in grams (g).</p>
+        <p className="text-sm mb-3">Enter the quantity per child: rice, wheat and pulse in grams (g), oil in millilitres (ml), ಸಾದಿಲ್ವಾರು in rupees (₹).</p>
         <div className="flex flex-col gap-3">
           {renderSection('1-5', g15, setG15)}
           {renderSection('6-10', g610, setG610)}

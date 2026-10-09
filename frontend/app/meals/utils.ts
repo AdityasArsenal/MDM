@@ -12,11 +12,11 @@ export interface MealRow {
   has_pulses: boolean | null; // null = not chosen yet
 }
 
-// Rates come from the backend per month. rice/wheat/oil/pulse are GRAMS PER CHILD, sadilvaru is a value per child.
+// Rates come from the backend per month. rice/wheat/pulse are GRAMS PER CHILD, oil is MILLILITRES PER CHILD, sadilvaru is RUPEES PER CHILD.
 export interface RateGroup {
   rice_g: number;
   wheat_g: number;
-  oil_g: number;
+  oil_ml: number;
   pulse_g: number;
   sadilvaru: number;
 }
@@ -37,7 +37,7 @@ export interface RatesResponse {
 const ZERO_RESULT = { rice: 0, wheat: 0, oil: 0, pulses: 0, sadilvaru: 0 };
 
 // Pure calculation functions - no React dependencies
-// rice/wheat/oil/pulses are in KG (grams * count / 1000); sadilvaru = rate * count
+// rice/wheat/pulses in KG (grams * count / 1000), oil in LITRES (ml * count / 1000); sadilvaru = rupees (rate * count)
 export const calculateMeal = (
   rates: RateGroup | null,
   count: number,
@@ -49,7 +49,7 @@ export const calculateMeal = (
   return {
     rice: mealType === 'rice' ? (rates.rice_g * count) / 1000 : 0,
     wheat: mealType === 'wheat' ? (rates.wheat_g * count) / 1000 : 0,
-    oil: (rates.oil_g * count) / 1000,
+    oil: (rates.oil_ml * count) / 1000,
     pulses: hasPulses === true ? (rates.pulse_g * count) / 1000 : 0,
     sadilvaru: rates.sadilvaru * count,
   };

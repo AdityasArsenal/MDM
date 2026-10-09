@@ -540,13 +540,13 @@ export default function Meals() {
                   <TableHead className="min-w-[120px] text-center text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
                   <TableHead className="text-black">ಅಕ್ಕಿ (kg)</TableHead>
                   <TableHead className="text-black">ಗೋಧಿ (kg)</TableHead>
-                  <TableHead className="text-black">ಎಣ್ಣೆ (kg)</TableHead>
+                  <TableHead className="text-black">ಎಣ್ಣೆ (L)</TableHead>
                   <TableHead className="text-black">ಬೇಳೆ (kg)</TableHead>
                   <TableHead className="border-r text-black">ಸಾದಿಲ್ವಾರು</TableHead>
                   <TableHead className="min-w-[120px] text-center text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
                   <TableHead className="text-black">ಅಕ್ಕಿ (kg)</TableHead>
                   <TableHead className="text-black">ಗೋಧಿ (kg)</TableHead>
-                  <TableHead className="text-black">ಎಣ್ಣೆ (kg)</TableHead>
+                  <TableHead className="text-black">ಎಣ್ಣೆ (L)</TableHead>
                   <TableHead className="text-black">ಬೇಳೆ (kg)</TableHead>
                   <TableHead className="border-r text-black">ಸಾದಿಲ್ವಾರು</TableHead>
                   <TableHead className="text-center text-black"></TableHead>
