@@ -3,6 +3,7 @@ import { TableCell, TableRow } from '@/app/components/ui/table';
 import { Input } from '@/app/components/ui/input';
 import {
   MilkRow,
+  MilkRates,
   getDayName,
   isSunday,
   calculateTotalMilk,
@@ -50,16 +51,17 @@ interface MilkTableRowProps {
   row: MilkRow;
   onHandleChange: (id: number, field: keyof MilkRow, value: any) => void;
   isFirstDay?: boolean;
+  rates: MilkRates | null;
 }
 
-const MilkTableRow = ({ row, onHandleChange, isFirstDay = false }: MilkTableRowProps) => {
+const MilkTableRow = ({ row, onHandleChange, isFirstDay = false, rates }: MilkTableRowProps) => {
   const totalMilk = useMemo(() => calculateTotalMilk(row.milk_open || 0, row.milk_rcpt || 0), [row.milk_open, row.milk_rcpt]);
   const totalRagi = useMemo(() => calculateTotalRagi(row.ragi_open || 0, row.ragi_rcpt || 0), [row.ragi_open, row.ragi_rcpt]);
-  const distMilk = useMemo(() => calculateMilkDistribution(row.children || 0), [row.children]);
-  const distRagi = useMemo(() => calculateRagiDistribution(row.children || 0, row.dist_type), [row.children, row.dist_type]);
+  const distMilk = useMemo(() => calculateMilkDistribution(row.children || 0, rates), [row.children, rates]);
+  const distRagi = useMemo(() => calculateRagiDistribution(row.children || 0, row.dist_type, rates), [row.children, row.dist_type, rates]);
   const closeMilk = useMemo(() => calculateClosingMilk(totalMilk, distMilk), [totalMilk, distMilk]);
   const closeRagi = useMemo(() => calculateClosingRagi(totalRagi, distRagi), [totalRagi, distRagi]);
-  const sugar = useMemo(() => calculateSugar(row.children || 0), [row.children]);
+  const sugar = useMemo(() => calculateSugar(row.children || 0, rates), [row.children, rates]);
   const sunday = useMemo(() => isSunday(row.date), [row.date]);
   const dayName = useMemo(() => getDayName(row.date), [row.date]);
   const missingDist = row.children > 0 && !row.dist_type;
