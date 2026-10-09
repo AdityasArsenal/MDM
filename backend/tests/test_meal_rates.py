@@ -18,8 +18,8 @@ from meal_calc import usage, validate_rates, rates_from_row, rates_to_row
 
 def rates(scale=1.0):
     return {
-        "g1_5": {"rice_g": 100 * scale, "wheat_g": 100 * scale, "oil_g": 5 * scale, "pulse_g": 20 * scale, "sadilvaru": 2.15},
-        "g6_10": {"rice_g": 150 * scale, "wheat_g": 150 * scale, "oil_g": 7.5 * scale, "pulse_g": 30 * scale, "sadilvaru": 3.12},
+        "g1_5": {"rice_g": 100 * scale, "wheat_g": 100 * scale, "oil_ml": 5 * scale, "pulse_g": 20 * scale, "sadilvaru": 2.15},
+        "g6_10": {"rice_g": 150 * scale, "wheat_g": 150 * scale, "oil_ml": 7.5 * scale, "pulse_g": 30 * scale, "sadilvaru": 3.12},
     }
 
 
@@ -156,7 +156,7 @@ class RatesApi(Base):
             return r
         bad = [-1, "5", None, True, [1], {}]
         for v in bad:
-            r = self.put(2026, 10, {"rates": with_("g1_5", "oil_g", v)})
+            r = self.put(2026, 10, {"rates": with_("g1_5", "oil_ml", v)})
             self.assertEqual(r.status_code, 400, v)
             self.assertIn("error", r.get_json())
         # NaN / Infinity as raw JSON tokens (Python's json accepts them)
@@ -180,6 +180,28 @@ class RatesApi(Base):
         r = self.client.put("/api/meal/rates/2026/10", data="nope", headers=self.h(), content_type="text/plain")
         self.assertEqual(r.status_code, 400)
         self.assertEqual(self.db.writes, [])
+
+    def test_oil_g_rejected(self):
+        r = rates()
+        r["g1_5"]["oil_g"] = r["g1_5"].pop("oil_ml")
+        resp = self.put(2026, 10, {"rates": r})
+        self.assertEqual(resp.status_code, 400)
+        r = rates()
+        r["g6_10"]["oil_g"] = 5   # extra alongside oil_ml
+        self.assertEqual(self.put(2026, 10, {"rates": r}).status_code, 400)
+        self.assertEqual(self.db.writes, [])
+
+    def test_responses_use_oil_ml_only(self):
+        put = self.put(2026, 10, {"rates": rates()}).get_json()
+        saved = self.get(2026, 10).get_json()
+        inherited = self.get(2026, 11).get_json()
+        self.assertEqual(inherited["source"], "inherited")
+        for j in (put, saved, inherited):
+            for g in ("g1_5", "g6_10"):
+                self.assertIn("oil_ml", j["rates"][g])
+                self.assertNotIn("oil_g", j["rates"][g])
+        self.assertIn("g15_oil_ml", self.db.rows[("A", 2026, 10)])
+        self.assertIn("g610_oil_ml", self.db.rows[("A", 2026, 10)])
 
     def test_bad_year_month(self):
         for y, m in [(2026, 0), (2026, 13), (1999, 5), (2101, 5)]:
@@ -265,6 +287,11 @@ class Calc(unittest.TestCase):
         u = usage(self.G, 30, "wheat", False)
         self.assertEqual(u["rice"], 0)
         self.assertAlmostEqual(u["wheat"], 3.0)
+
+    def test_oil_litres(self):
+        g = {**self.G, "oil_ml": 5}
+        self.assertAlmostEqual(usage(g, 30, "rice", False)["oil"], 0.15)
+        self.assertAlmostEqual(usage(g, 30, "wheat", True)["oil"], 0.15)
 
     def test_oil_always_pulse_conditional(self):
         u = usage(self.G, 100, "rice", False)

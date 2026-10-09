@@ -103,7 +103,7 @@ class StockCalc(unittest.TestCase):
     def test_oil_always(self):
         self.set_rates(2026, 10, rates())
         self.db.meals["A"] = [meal("2026-10-05", "wheat")]
-        self.assertEqual(self.row("2026-10-05", "1-5")["oil_used"], 0.15)
+        self.assertEqual(self.row("2026-10-05", "1-5")["oil_used"], 0.15)  # litres: 5 ml x 30
 
     def test_no_meal_zeros(self):
         self.set_rates(2026, 10, rates())
