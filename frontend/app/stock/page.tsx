@@ -75,6 +75,14 @@ const normalizeRow = (r: StockRow): StockRow => {
   };
 };
 
+// Oil is in litres; the other items are in kg
+const ITEM_HEADINGS = [
+  { label: 'ಅಕ್ಕಿ', unit: 'kg' },
+  { label: 'ಗೋಧಿ', unit: 'kg' },
+  { label: 'ಎಣ್ಣೆ', unit: 'L' },
+  { label: 'ಬೇಳೆ', unit: 'kg' },
+];
+
 interface RatesInfo {
   source: 'saved' | 'inherited' | 'none';
   inherited_from: { year: number; month: number } | null;
@@ -419,10 +427,9 @@ export default function Stock() {
                   <TableHead></TableHead>
                   {Array(5).fill(0).map((_, i) => (
                     <React.Fragment key={i}>
-                      <TableHead className="min-w-[120px] text-center">ಅಕ್ಕಿ (kg)</TableHead>
-                      <TableHead className="min-w-[120px] text-center">ಗೋಧಿ (kg)</TableHead>
-                      <TableHead className="min-w-[120px] text-center">ಎಣ್ಣೆ (kg)</TableHead>
-                      <TableHead className="min-w-[120px] text-center">ಬೇಳೆ (kg)</TableHead>
+                      {ITEM_HEADINGS.map(item => (
+                        <TableHead key={item.label} className="min-w-[120px] text-center">{item.label} ({item.unit})</TableHead>
+                      ))}
                     </React.Fragment>
                   ))}
                 </TableRow>
