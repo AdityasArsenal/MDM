@@ -523,13 +523,12 @@ def update_payment_status(order_id, status, pp_data=None):
         print(f"Error updating payment: {e}")
         raise e
 
-def insert_subscription(user_id, payment_id, plan_type, start_date, end_date, status="active"):
-    """Insert subscription record"""
+def insert_subscription(user_id, payment_id, start_date, end_date, status="active"):
+    """Insert subscription record. The plan is not stored here: payments.plan is the single source of truth."""
     try:
         result = supabase.table("subscriptions").insert({
             "user_id": user_id,
             "payment_id": payment_id,
-            "plan_type": plan_type,
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),
             "status": status
@@ -569,9 +568,9 @@ def get_pending_payments_for_user(user_id, since_iso, limit=3):
         raise e
 
 def get_subscription_by_user_id(user_id):
-    """Get active subscription by user ID"""
+    """Get active subscription by user ID, with the plan from its payment (payments.plan)"""
     try:
-        result = supabase.table("subscriptions").select("*").eq("user_id", user_id).eq("status", "active").gte("end_date", utc_now_iso()).order("end_date", desc=True).limit(1).execute()
+        result = supabase.table("subscriptions").select("*, payments(plan)").eq("user_id", user_id).eq("status", "active").gte("end_date", utc_now_iso()).order("end_date", desc=True).limit(1).execute()
         return result.data[0] if result.data else None
     except Exception as e:
         print(f"Error getting subscription: {e}")
@@ -580,7 +579,7 @@ def get_subscription_by_user_id(user_id):
 def get_subscription_history(user_id):
     """Get subscription history for user"""
     try:
-        result = supabase.table("subscriptions").select("*, payments(order_id, amount, status)").eq("user_id", user_id).order("created_at", desc=True).execute()
+        result = supabase.table("subscriptions").select("*, payments(order_id, amount, status, plan)").eq("user_id", user_id).order("created_at", desc=True).execute()
         return result.data
     except Exception as e:
         print(f"Error getting subscription history: {e}")
