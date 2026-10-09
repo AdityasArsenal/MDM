@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { SheetSelector } from '@/app/components/SheetSelector';
 import { MonthYearPicker } from '@/app/components/MonthYearPicker';
@@ -20,7 +20,19 @@ export default function Dashboard() {
   const [selectedSheet, setSelectedSheet] = useState('');
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
-  const [userName, setUserName] = useState('');
+  // Read from localStorage on the client only; the server snapshot is ''
+  const userName = useSyncExternalStore(
+    () => () => {},
+    () => {
+      try {
+        const userData = JSON.parse(localStorage.getItem('user') || 'null');
+        return userData ? userData.name || userData.email || 'User' : '';
+      } catch {
+        return '';
+      }
+    },
+    () => ''
+  );
 
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -28,8 +40,6 @@ export default function Dashboard() {
       router.push('/');
       return;
     }
-    const userData = JSON.parse(user);
-    setUserName(userData.name || userData.email || 'User');
 
     // Check subscription status on every dashboard visit
     authFetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/sub/check`)
@@ -144,7 +154,7 @@ export default function Dashboard() {
           <ul className="text-sm text-blue-800 space-y-1">
             <li>• Select a sheet type from the dropdown</li>
             <li>• Choose the month and year you want to work with</li>
-            <li>• Click "Open Selected Sheet" or use Quick Access cards</li>
+            <li>• Click &quot;Open Selected Sheet&quot; or use Quick Access cards</li>
             <li>• Remember to save your changes before switching sheets</li>
           </ul>
         </div>

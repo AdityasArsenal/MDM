@@ -17,7 +17,7 @@ interface EggTableRowProps {
   eggPrice: number;
   bananaPrice: number;
   payerMissing?: boolean;
-  onChange: (index: number, field: keyof EggRecord, value: any) => void;
+  onChange: (index: number, field: keyof EggRecord, value: EggRecord[keyof EggRecord]) => void;
 }
 
 const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, payerMissing, onChange }: EggTableRowProps) => {

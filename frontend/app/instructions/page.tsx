@@ -11,7 +11,7 @@ export default function InstructionsPage() {
       <header className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">How to Use MDM Management System</h1>
-          <p className="mt-2 text-lg text-gray-600">Complete guide to managing your school's meal data</p>
+          <p className="mt-2 text-lg text-gray-600">Complete guide to managing your school&apos;s meal data</p>
         </div>
       </header>
       
@@ -59,8 +59,8 @@ export default function InstructionsPage() {
                 <li>Indicate whether pulses (ಬೇಳೆ) are included (Yes/No)</li>
                 <li>Enter the number of children in age groups 1-5 and 6-10</li>
                 <li>The system automatically calculates ingredient quantities</li>
-                <li>Click "Save All" to save your data</li>
-                <li>Use "Download PDF" to export the report</li>
+                <li>Click &quot;Save All&quot; to save your data</li>
+                <li>Use &quot;Download PDF&quot; to export the report</li>
               </ol>
               <p className="text-lg text-gray-700 mt-4">
                 <strong>Note:</strong> Sundays are highlighted in red and are typically non-working days.

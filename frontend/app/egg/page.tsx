@@ -106,7 +106,7 @@ export default function EggPage() {
       
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const existing = data.find((r: any) => r.date.startsWith(dateStr));
+        const existing = data.find((r: EggRecord) => r.date.startsWith(dateStr));
         
         allDays.push(existing ? {
           date: dateStr,
@@ -126,8 +126,8 @@ export default function EggPage() {
       }
       
       setRows(allDays);
-    } catch (err: any) {
-      alert('Error: ' + err.message);
+    } catch (err) {
+      alert('Error: ' + (err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -151,7 +151,7 @@ export default function EggPage() {
         headers: { 'ngrok-skip-browser-warning': 'true' }
       });
       const data: RatesResponse = await res.json();
-      if (!res.ok) throw new Error((data as any).error || 'Failed to load rates');
+      if (!res.ok) throw new Error((data as unknown as { error?: string }).error || 'Failed to load rates');
       if (req !== ratesReq.current) return;
       setRatesSource(data.source);
       if (data.rates) {
@@ -167,9 +167,9 @@ export default function EggPage() {
           key: Date.now(),
         });
       }
-    } catch (err: any) {
+    } catch (err) {
       if (req !== ratesReq.current) return;
-      alert('Error: ' + err.message);
+      alert('Error: ' + (err as Error).message);
     }
   }, [userId, year, month]);
 
@@ -181,7 +181,7 @@ export default function EggPage() {
 
   const [missingDates, setMissingDates] = useState<string[]>([]);
 
-  const handleChange = useCallback((idx: number, field: keyof EggRecord, value: any) => {
+  const handleChange = useCallback((idx: number, field: keyof EggRecord, value: EggRecord[keyof EggRecord]) => {
     setRows(prev =>
       prev.map((row, i) =>
         i === idx
@@ -275,9 +275,9 @@ export default function EggPage() {
       
       alert('Saved!');
       await loadData(); // Reload to get fresh data
-    } catch (err: any) {
+    } catch (err) {
       console.error('Save error:', err);
-      alert('Error: ' + err.message);
+      alert('Error: ' + (err as Error).message);
     } finally {
       setSaving(false);
     }

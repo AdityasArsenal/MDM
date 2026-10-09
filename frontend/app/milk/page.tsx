@@ -88,14 +88,14 @@ export default function Milk() {
       }
 
       const body = await res.json().catch(() => null);
-      const data: any[] = Array.isArray(body) ? body : [];
+      const data: Partial<MilkRow>[] = Array.isArray(body) ? body : [];
 
       const daysInMonth = new Date(year, month, 0).getDate();
       const allDays: MilkRow[] = [];
 
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const existing = data.find((m: any) => typeof m?.date === 'string' && m.date.startsWith(dateStr));
+        const existing = data.find((m: Partial<MilkRow>) => typeof m?.date === 'string' && m.date.startsWith(dateStr));
 
         allDays.push(existing ? {
           id: day,
@@ -122,9 +122,9 @@ export default function Milk() {
       // If the rates are not loaded yet, the effect below redoes this when they arrive.
       setRows(ratesRef.current ? recalculateOpeningStock(allDays, ratesRef.current, 1) : allDays);
       setRowsVersion(v => v + 1);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Load error:', err);
-      alert('Error loading data: ' + err.message);
+      alert('Error loading data: ' + (err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -159,7 +159,7 @@ export default function Milk() {
           showToast(`Rates for ${monthLabel(year, month)} are saved.`);
         }
       } catch (err) {
-        if (!cancelled) alert('Error loading rates: ' + (err instanceof Error ? err.message : String(err)));
+        if (!cancelled) alert('Error loading rates: ' + (err instanceof Error ? (err as Error).message : String(err)));
       } finally {
         if (!cancelled) setRatesLoading(false);
       }
@@ -192,13 +192,13 @@ export default function Milk() {
       setEditorOpen(false);
       showToast(`Rates for ${monthLabel(year, month)} are saved.`);
     } catch (err) {
-      alert('Error saving rates: ' + (err instanceof Error ? err.message : String(err)));
+      alert('Error saving rates: ' + (err instanceof Error ? (err as Error).message : String(err)));
     } finally {
       setRatesSaving(false);
     }
   };
 
-  const handleChange = useCallback((id: number, field: keyof MilkRow, value: any) => {
+  const handleChange = useCallback((id: number, field: keyof MilkRow, value: MilkRow[keyof MilkRow]) => {
     setRows(prev => {
       const idx = prev.findIndex(r => r.id === id);
       if (idx === -1) return prev;
@@ -283,9 +283,9 @@ export default function Milk() {
       }
 
       alert('Saved!');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Save error:', err);
-      alert('Error saving: ' + err.message);
+      alert('Error saving: ' + (err as Error).message);
     } finally {
       setSaving(false);
     }

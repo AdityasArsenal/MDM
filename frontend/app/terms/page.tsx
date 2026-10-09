@@ -29,7 +29,7 @@ export default function TermsAndConditionsPage() {
             <section>
               <h2 className="text-2xl font-bold text-gray-800 mb-4">1. Introduction</h2>
               <p className="text-lg text-gray-700">
-                Welcome to Data Canvas ("we," "our," or "us"). Our web-based automation tool, accessible at gov.nonexistential.dev, is designed to assist school teachers and staff in tracking and calculating monthly food expenses for submission to the Karnataka government. By using our services, you agree to comply with and be bound by these Terms and Conditions.
+                Welcome to Data Canvas (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). Our web-based automation tool, accessible at gov.nonexistential.dev, is designed to assist school teachers and staff in tracking and calculating monthly food expenses for submission to the Karnataka government. By using our services, you agree to comply with and be bound by these Terms and Conditions.
               </p>
             </section>
 
@@ -70,7 +70,7 @@ export default function TermsAndConditionsPage() {
             <section>
               <h2 className="text-2xl font-bold text-gray-800 mb-4">6. Limitation of Liability</h2>
               <p className="text-lg text-gray-700">
-                Data Canvas is provided "as is." We do not guarantee that the service will be error-free or uninterrupted. We are not liable for any indirect, incidental, or consequential damages arising from your use of the service, including any inaccuracies in the generated reports.
+                Data Canvas is provided &quot;as is.&quot; We do not guarantee that the service will be error-free or uninterrupted. We are not liable for any indirect, incidental, or consequential damages arising from your use of the service, including any inaccuracies in the generated reports.
               </p>
             </section>
 
