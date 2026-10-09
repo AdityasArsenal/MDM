@@ -182,7 +182,7 @@ def get_stock_with_calculations(year, month):
                     'pulse_open': float(stock_row['pulse_open']) if stock_row.get('pulse_open') is not None else (0 if day == 1 else None),
                     'rice_used': round(used['rice'], 3),
                     'wheat_used': round(used['wheat'], 3),
-                    'oil_used': round(used['oil'], 3),
+                    'oil_used': round(used['oil'], 3),  # litres (rates are oil_ml per child)
                     'pulse_used': round(used['pulse'], 3),
                 })
 

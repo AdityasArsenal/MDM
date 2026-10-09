@@ -1,13 +1,15 @@
 """
 Shared meal-rate calculation layer (pure, no I/O).
 
-Units: rice/wheat/oil/pulse rates are GRAMS PER CHILD. sadilvaru is a value per
-child (not grams). Usage in kg = grams * children / 1000; sadilvaru = rate * children.
+Units: rice_g / wheat_g / pulse_g are GRAMS PER CHILD; oil_ml is MILLILITRES PER
+CHILD; sadilvaru is RUPEES PER CHILD. Usage: rice/wheat/pulse in kg =
+grams * children / 1000; oil in litres = oil_ml * children / 1000;
+sadilvaru (rupees) = rate * children (not divided by 1000).
 """
 
 import math
 
-RATE_FIELDS = ('rice_g', 'wheat_g', 'oil_g', 'pulse_g', 'sadilvaru')
+RATE_FIELDS = ('rice_g', 'wheat_g', 'oil_ml', 'pulse_g', 'sadilvaru')
 GROUPS = ('g1_5', 'g6_10')
 
 # DB column prefix for each group
@@ -69,16 +71,16 @@ def validate_rates(obj):
 
 
 def usage(group_rates, count, meal_type, has_pulses):
-    """Per-day usage for one group. rice/wheat/oil/pulse in kg; sadilvaru as rate*count."""
+    """Per-day usage for one group. rice/wheat/pulse in kg, oil in LITRES, sadilvaru in rupees (rate*count)."""
     if not meal_type:
         return {'rice': 0.0, 'wheat': 0.0, 'oil': 0.0, 'pulse': 0.0, 'sadilvaru': 0.0}
 
     count = count or 0
-    kg = lambda field: group_rates[field] * count / 1000
+    per_1000 = lambda field: group_rates[field] * count / 1000  # g -> kg, ml -> L
     return {
-        'rice': kg('rice_g') if meal_type == 'rice' else 0.0,
-        'wheat': kg('wheat_g') if meal_type == 'wheat' else 0.0,
-        'oil': kg('oil_g'),
-        'pulse': kg('pulse_g') if has_pulses else 0.0,
+        'rice': per_1000('rice_g') if meal_type == 'rice' else 0.0,
+        'wheat': per_1000('wheat_g') if meal_type == 'wheat' else 0.0,
+        'oil': per_1000('oil_ml'),
+        'pulse': per_1000('pulse_g') if has_pulses else 0.0,
         'sadilvaru': group_rates['sadilvaru'] * count,
     }
