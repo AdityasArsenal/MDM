@@ -1,14 +1,20 @@
-.env
+# Secrets: never commit
 .env
 .env.*
 .env.json
+*.env
+
+# Python / local environment
 __pycache__/
+*.py[cod]
 menv/
+.venv/
+
+# Editors
 .vscode/
 .kiro/
+
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
-
-rought/
