@@ -1,3 +1,8 @@
 passkeys/
 agents/
 .claude/worktrees/
+# Personal notes (kept locally, not in git)
+logbook.md
+waiting.md
+future_list.md
+check_b_deployemnt.md

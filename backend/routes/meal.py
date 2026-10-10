@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, request, jsonify, g
 from auth_session import load_session_user
 from db import (
@@ -8,6 +9,7 @@ from meal_calc import rates_from_row, rates_to_row, validate_rates
 from datetime import datetime
 
 meal_bp = Blueprint('meal', __name__)
+logger = logging.getLogger(__name__)
 
 @meal_bp.before_request
 def require_login():
@@ -103,7 +105,7 @@ def get_rates(year, month):
             ))
         return jsonify(_rates_payload('none', year, month, None))
     except Exception as e:
-        print("Error loading meal rates:", e)
+        logger.error("Error loading meal rates: %s", e)
         return jsonify({'error': str(e)}), 500
 
 
@@ -125,7 +127,7 @@ def put_rates(year, month):
         upsert_meal_rates(g.user_id, year, month, rates_to_row(clean))
         return jsonify(_rates_payload('saved', year, month, rates_to_row(clean)))
     except Exception as e:
-        print("Error saving meal rates:", e)
+        logger.error("Error saving meal rates: %s", e)
         return jsonify({'error': str(e)}), 500
 
 
@@ -174,5 +176,5 @@ def save_meals():
             insert_meal_plan(user_id=user_id, **rec)
         return jsonify({'status': 'success'})
     except Exception as e:
-        print("Error saving meals:", e)
+        logger.error("Error saving meals: %s", e)
         return jsonify({'error': str(e)}), 500

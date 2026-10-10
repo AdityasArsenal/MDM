@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, request, jsonify, g
 from auth_session import load_session_user
 from calendar import monthrange
@@ -10,6 +11,7 @@ from datetime import datetime
 import math
 
 stock_bp = Blueprint('stock', __name__)
+logger = logging.getLogger(__name__)
 
 @stock_bp.before_request
 def require_login():
@@ -111,7 +113,7 @@ def save_stock():
 
         return jsonify({'status': 'success'})
     except Exception as e:
-        print(f"Error saving stock: {e}")
+        logger.error(f"Error saving stock: {e}")
         return jsonify({'error': str(e)}), 500
 
 def _resolve_rates(user_id, year, month):
@@ -191,5 +193,5 @@ def get_stock_with_calculations(year, month):
             'rows': result,
         })
     except Exception as e:
-        print(f"Error loading stock calc data: {e}")
+        logger.error(f"Error loading stock calc data: {e}")
         return jsonify({'error': 'Failed to load stock data'}), 500

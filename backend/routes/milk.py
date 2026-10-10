@@ -1,3 +1,4 @@
+import logging
 import math
 from datetime import datetime
 from flask import Blueprint, request, jsonify, g
@@ -9,6 +10,7 @@ from db import (
 from milk_calc import rates_from_row, rates_to_row, validate_rates
 
 milk_bp = Blueprint('milk', __name__)
+logger = logging.getLogger(__name__)
 
 NUMERIC_FIELDS = ['children', 'milk_open', 'ragi_open', 'milk_rcpt', 'ragi_rcpt']
 # Opening stock may be negative: teachers buy milk/ragi out of pocket and record it as distributed with no stock left
@@ -120,7 +122,7 @@ def get_rates(year, month):
             ))
         return jsonify(_rates_payload('none', year, month, None))
     except Exception as e:
-        print("Error loading milk rates:", e)
+        logger.error("Error loading milk rates: %s", e)
         return jsonify({'error': str(e)}), 500
 
 
@@ -142,7 +144,7 @@ def put_rates(year, month):
         upsert_milk_rates(g.user_id, year, month, rates_to_row(clean))
         return jsonify(_rates_payload('saved', year, month, rates_to_row(clean)))
     except Exception as e:
-        print("Error saving milk rates:", e)
+        logger.error("Error saving milk rates: %s", e)
         return jsonify({'error': str(e)}), 500
 
 
@@ -197,5 +199,5 @@ def save_milk():
 
         return jsonify({'status': 'success'})
     except Exception as e:
-        print(f"Error saving milk: {e}")
+        logger.error(f"Error saving milk: {e}")
         return jsonify({'error': str(e)}), 500

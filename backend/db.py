@@ -1,9 +1,12 @@
+import logging
 from supabase import create_client
 import os
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 # Initialize Supabase client
 url = os.getenv("SUPABASE_URL")
@@ -42,7 +45,7 @@ def insert_egg_record(
         return result.data[0] if result.data else None
 
     except Exception as e:
-        print(f"Error inserting egg record: {e}")
+        logger.error(f"Error inserting egg record: {e}")
         raise
 
 
@@ -69,7 +72,7 @@ def get_egg_records(user_id, year, month):
         return result.data
 
     except Exception as e:
-        print(f"Error getting egg records: {e}")
+        logger.error(f"Error getting egg records: {e}")
         raise
 
 def get_egg_rates(user_id, year, month):
@@ -88,7 +91,7 @@ def get_egg_rates(user_id, year, month):
         return result.data[0] if result.data else None
 
     except Exception as e:
-        print(f"Error getting egg rates: {e}")
+        logger.error(f"Error getting egg rates: {e}")
         raise
 
 
@@ -109,7 +112,7 @@ def get_latest_egg_rates_before(user_id, year, month):
         return result.data[0] if result.data else None
 
     except Exception as e:
-        print(f"Error getting earlier egg rates: {e}")
+        logger.error(f"Error getting earlier egg rates: {e}")
         raise
 
 
@@ -132,7 +135,7 @@ def upsert_egg_rates(user_id, year, month, row_dict):
         return result.data[0] if result.data else None
 
     except Exception as e:
-        print(f"Error saving egg rates: {e}")
+        logger.error(f"Error saving egg rates: {e}")
         raise
 
 def insert_meal_plan(
@@ -165,7 +168,7 @@ def insert_meal_plan(
         return result.data[0] if result.data else None
 
     except Exception as e:
-        print(f"Error inserting meal plan: {e}")
+        logger.error(f"Error inserting meal plan: {e}")
         raise
 
 
@@ -193,7 +196,7 @@ def get_meal_plans(user_id, year, month):
         return result.data
 
     except Exception as e:
-        print(f"Error getting meal plans: {e}")
+        logger.error(f"Error getting meal plans: {e}")
         raise
 
 def get_meal_rates(user_id, year, month):
@@ -212,7 +215,7 @@ def get_meal_rates(user_id, year, month):
         return result.data[0] if result.data else None
 
     except Exception as e:
-        print(f"Error getting meal rates: {e}")
+        logger.error(f"Error getting meal rates: {e}")
         raise
 
 
@@ -233,7 +236,7 @@ def get_latest_meal_rates_before(user_id, year, month):
         return result.data[0] if result.data else None
 
     except Exception as e:
-        print(f"Error getting earlier meal rates: {e}")
+        logger.error(f"Error getting earlier meal rates: {e}")
         raise
 
 
@@ -256,7 +259,7 @@ def upsert_meal_rates(user_id, year, month, row_dict):
         return result.data[0] if result.data else None
 
     except Exception as e:
-        print(f"Error saving meal rates: {e}")
+        logger.error(f"Error saving meal rates: {e}")
         raise
 
 
@@ -275,7 +278,7 @@ def insert_milk_record(user_id, date, children, milk_open, ragi_open, milk_rcpt,
         }, on_conflict="user_id,date").execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error inserting milk record: {e}")
+        logger.error(f"Error inserting milk record: {e}")
         raise e
 
 def get_milk_records(user_id, year, month):
@@ -290,7 +293,7 @@ def get_milk_records(user_id, year, month):
         result = supabase.table("milk").select("*").eq("user_id", user_id).gte("date", start_date).lt("date", end_date).order("date").execute()
         return result.data
     except Exception as e:
-        print(f"Error getting milk records: {e}")
+        logger.error(f"Error getting milk records: {e}")
         raise e
 
 
@@ -310,7 +313,7 @@ def get_milk_rates(user_id, year, month):
         return result.data[0] if result.data else None
 
     except Exception as e:
-        print(f"Error getting milk rates: {e}")
+        logger.error(f"Error getting milk rates: {e}")
         raise
 
 
@@ -331,7 +334,7 @@ def get_latest_milk_rates_before(user_id, year, month):
         return result.data[0] if result.data else None
 
     except Exception as e:
-        print(f"Error getting earlier milk rates: {e}")
+        logger.error(f"Error getting earlier milk rates: {e}")
         raise
 
 
@@ -354,7 +357,7 @@ def upsert_milk_rates(user_id, year, month, row_dict):
         return result.data[0] if result.data else None
 
     except Exception as e:
-        print(f"Error saving milk rates: {e}")
+        logger.error(f"Error saving milk rates: {e}")
         raise
 
 def insert_stock(user_id, date, grade, rice_add, wheat_add, oil_add, pulse_add, rice_open=None, wheat_open=None, oil_open=None, pulse_open=None):
@@ -383,7 +386,7 @@ def insert_stock(user_id, date, grade, rice_add, wheat_add, oil_add, pulse_add, 
         result = supabase.table("stock").upsert(data, on_conflict="user_id,date,grade").execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error inserting stock: {e}")
+        logger.error(f"Error inserting stock: {e}")
         raise e
 
 
@@ -408,7 +411,7 @@ def get_stock_records(user_id, year, month):
         )
         return result.data
     except Exception as e:
-        print(f"Error getting stock records: {e}")
+        logger.error(f"Error getting stock records: {e}")
         raise e
 
 
@@ -435,7 +438,7 @@ def query_db(query, args=(), one=False):
             result = _execute_raw_query(query, args)
             return result
     except Exception as e:
-        print(f"Database error: {e}")
+        logger.error(f"Database error: {e}")
         raise e
 
 def _execute_raw_query(query, args):
@@ -459,7 +462,7 @@ def insert_user(email, name, google_id):
         }).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error inserting user: {e}")
+        logger.error(f"Error inserting user: {e}")
         raise e
 
 def get_user_by_google_id(google_id):
@@ -468,7 +471,7 @@ def get_user_by_google_id(google_id):
         result = supabase.table("users").select("*").eq("google_id", google_id).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting user: {e}")
+        logger.error(f"Error getting user: {e}")
         raise e
 
 def utc_now_iso():
@@ -482,7 +485,7 @@ def get_active_subscription(user_id):
         result = supabase.table("subscriptions").select("*").eq("user_id", user_id).eq("status", "active").gte("end_date", utc_now_iso()).order("end_date", desc=True).limit(1).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting subscription: {e}")
+        logger.error(f"Error getting subscription: {e}")
         raise e
 
 
@@ -498,7 +501,7 @@ def insert_payment(user_id, order_id, plan, amount, status="pending"):
         }).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error inserting payment: {e}")
+        logger.error(f"Error inserting payment: {e}")
         raise e
 
 def get_payment_by_order_id(order_id):
@@ -507,7 +510,7 @@ def get_payment_by_order_id(order_id):
         result = supabase.table("payments").select("*").eq("order_id", order_id).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting payment: {e}")
+        logger.error(f"Error getting payment: {e}")
         raise e
 
 def update_payment_status(order_id, status, pp_data=None):
@@ -520,7 +523,7 @@ def update_payment_status(order_id, status, pp_data=None):
         result = supabase.table("payments").update(data).eq("order_id", order_id).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error updating payment: {e}")
+        logger.error(f"Error updating payment: {e}")
         raise e
 
 def insert_subscription(user_id, payment_id, start_date, end_date, status="active"):
@@ -535,7 +538,7 @@ def insert_subscription(user_id, payment_id, start_date, end_date, status="activ
         }).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error inserting subscription: {e}")
+        logger.error(f"Error inserting subscription: {e}")
         raise e
 
 def get_subscription_by_payment_id(payment_id):
@@ -544,7 +547,7 @@ def get_subscription_by_payment_id(payment_id):
         result = supabase.table("subscriptions").select("*").eq("payment_id", payment_id).limit(1).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting subscription by payment: {e}")
+        logger.error(f"Error getting subscription by payment: {e}")
         raise e
 
 def get_recent_pending_payment(user_id, since_iso):
@@ -554,7 +557,7 @@ def get_recent_pending_payment(user_id, since_iso):
         result = supabase.table("payments").select("*").eq("user_id", user_id).eq("status", "pending").gte("created_at", since_iso).limit(1).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting recent pending payment: {e}")
+        logger.error(f"Error getting recent pending payment: {e}")
         raise e
 
 def get_pending_payments_for_user(user_id, since_iso, limit=3):
@@ -564,7 +567,7 @@ def get_pending_payments_for_user(user_id, since_iso, limit=3):
         result = supabase.table("payments").select("*").eq("user_id", user_id).in_("status", ["pending", "PENDING"]).gte("created_at", since_iso).order("created_at", desc=True).limit(limit).execute()
         return result.data or []
     except Exception as e:
-        print(f"Error getting pending payments: {e}")
+        logger.error(f"Error getting pending payments: {e}")
         raise e
 
 def get_subscription_by_user_id(user_id):
@@ -573,7 +576,7 @@ def get_subscription_by_user_id(user_id):
         result = supabase.table("subscriptions").select("*, payments(plan)").eq("user_id", user_id).eq("status", "active").gte("end_date", utc_now_iso()).order("end_date", desc=True).limit(1).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting subscription: {e}")
+        logger.error(f"Error getting subscription: {e}")
         raise e
 
 def get_subscription_history(user_id):
@@ -582,7 +585,7 @@ def get_subscription_history(user_id):
         result = supabase.table("subscriptions").select("*, payments(order_id, amount, status, plan)").eq("user_id", user_id).order("created_at", desc=True).execute()
         return result.data
     except Exception as e:
-        print(f"Error getting subscription history: {e}")
+        logger.error(f"Error getting subscription history: {e}")
         raise e
 
 def check_active_subscription(user_id):
@@ -591,7 +594,7 @@ def check_active_subscription(user_id):
         result = supabase.table("subscriptions").select("id").eq("user_id", user_id).eq("status", "active").gte("end_date", utc_now_iso()).limit(1).execute()
         return len(result.data) > 0
     except Exception as e:
-        print(f"Error checking subscription: {e}")
+        logger.error(f"Error checking subscription: {e}")
         raise e
 
 def expire_old_subscriptions():
@@ -600,5 +603,5 @@ def expire_old_subscriptions():
         result = supabase.table("subscriptions").update({"status": "expired"}).eq("status", "active").lt("end_date", utc_now_iso()).execute()
         return result.data
     except Exception as e:
-        print(f"Error expiring subscriptions: {e}")
+        logger.error(f"Error expiring subscriptions: {e}")
         raise e

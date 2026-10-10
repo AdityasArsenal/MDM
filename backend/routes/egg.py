@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from flask import Blueprint, request, jsonify, g
 from auth_session import load_session_user
@@ -8,6 +9,7 @@ from db import (
 from egg_calc import rates_from_row, rates_to_row, validate_rates
 
 egg_bp = Blueprint('egg', __name__)
+logger = logging.getLogger(__name__)
 
 INT_FIELDS = ['egg_m', 'egg_f', 'banana_m', 'banana_f']
 PAYERS = ('APF', 'GOV')
@@ -105,7 +107,7 @@ def get_rates(year, month):
             ))
         return jsonify(_rates_payload('none', year, month, None))
     except Exception as e:
-        print("Error loading egg rates:", e)
+        logger.error("Error loading egg rates: %s", e)
         return jsonify({'error': str(e)}), 500
 
 
@@ -127,7 +129,7 @@ def put_rates(year, month):
         upsert_egg_rates(g.user_id, year, month, rates_to_row(clean))
         return jsonify(_rates_payload('saved', year, month, rates_to_row(clean)))
     except Exception as e:
-        print("Error saving egg rates:", e)
+        logger.error("Error saving egg rates: %s", e)
         return jsonify({'error': str(e)}), 500
 
 
@@ -186,5 +188,5 @@ def save_egg():
         return jsonify({'status': 'success'})
 
     except Exception as e:
-        print(f"Error saving egg: {e}")
+        logger.error(f"Error saving egg: {e}")
         return jsonify({'error': str(e)}), 500

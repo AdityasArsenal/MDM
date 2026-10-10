@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, request, jsonify
 from google.oauth2 import id_token
 from google.auth.transport import requests
@@ -12,6 +13,7 @@ load_dotenv()
 
 
 auth_bp = Blueprint('auth', __name__)
+logger = logging.getLogger(__name__)
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -67,5 +69,5 @@ def login():
     except ValueError:
         return jsonify({'error': 'Invalid token'}), 401
     except Exception as e:
-        print(f"Auth error: {e}")
+        logger.error(f"Auth error: {e}")
         return jsonify({'error': 'Authentication failed'}), 500
