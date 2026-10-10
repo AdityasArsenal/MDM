@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlparse
 from flask import Flask
 from flask_cors import CORS
 from routes.auth import auth_bp
@@ -22,8 +23,17 @@ app = Flask(__name__)
 # Data routes need an active subscription (auth, pay and sub routes do not)
 app.before_request(enforce_subscription)
 
-# Enable CORS for frontend
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+# CORS: only the real frontend origin(s) may call the API from a browser.
+# Allowed = origin of FRONTEND_SUCCESS_URL / FRONTEND_FAILED_URL, plus any in CORS_ORIGINS
+# (comma-separated, e.g. http://localhost:3000 for local development). Empty = nothing allowed.
+def _origin(url):
+    parts = urlparse((url or "").strip())
+    return f"{parts.scheme}://{parts.netloc}" if parts.scheme and parts.netloc else None
+
+_allowed_origins = {_origin(os.getenv("FRONTEND_SUCCESS_URL")), _origin(os.getenv("FRONTEND_FAILED_URL"))}
+_allowed_origins |= {o.strip().rstrip("/") for o in os.getenv("CORS_ORIGINS", "").split(",")}
+_allowed_origins = sorted(o for o in _allowed_origins if o)
+CORS(app, resources={r"/api/*": {"origins": _allowed_origins}})
 
 # Register Blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')

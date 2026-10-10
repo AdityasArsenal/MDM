@@ -115,6 +115,7 @@ def expire_subscriptions():
     try:
         expire_old_subscriptions()
         return jsonify({'status': 'success'})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception:
+        logger.exception('Subscription expiry job failed')
+        return jsonify({'error': 'Internal error'}), 500
 

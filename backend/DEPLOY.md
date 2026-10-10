@@ -47,6 +47,7 @@ Build command: `pip install -r requirements.txt`. Run command: the `Procfile` `w
 | `BASE_URL` | yes (payments) | none | Public **https** URL of this backend, no trailing slash. PhonePe redirects the user to `BASE_URL/api/pay/status/<order>`. |
 | `FRONTEND_SUCCESS_URL` | yes (payments) | none | Frontend page after a successful payment (https). |
 | `FRONTEND_FAILED_URL` | yes (payments) | none | Frontend page after a failed/pending payment (https). |
+| `CORS_ORIGINS` | optional | none | Extra browser origins allowed to call `/api/*`, comma-separated (for example `http://localhost:3000` for local development). The origins of `FRONTEND_SUCCESS_URL` and `FRONTEND_FAILED_URL` are always allowed; anything else is blocked. |
 | `CRON_SECRET` | yes (expiry job) | none | Shared secret for `POST /api/sub/expire`. If unset the endpoint always returns 403. 32+ random characters. |
 | `PORT` | optional | `8000` | Port gunicorn binds to (many hosts set it for you). |
 | `WORKERS` | optional | `2` | gunicorn worker processes. |
@@ -81,5 +82,5 @@ Any host scheduler works (cron, the host's scheduled jobs, GitHub Actions `sched
 - All required variables above are set in the host; `BASE_URL` and both `FRONTEND_*_URL` are production **https** domains (not localhost/ngrok).
 - `PHONEPE_ENV` matches the credentials (`production` for live, `sandbox` for test).
 - `ENFORCE_SUBSCRIPTION` is not set.
-- CORS is restricted to the real frontend origin (see the report notes; `app.py` currently allows `*`).
+- CORS: only the origins of `FRONTEND_SUCCESS_URL` / `FRONTEND_FAILED_URL` (plus `CORS_ORIGINS`) are allowed. Check these two URLs use the real frontend domain, or the browser will block every API call.
 - `/health` is wired to the host health check; the daily `/api/sub/expire` job is scheduled.
