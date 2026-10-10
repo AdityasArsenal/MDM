@@ -1,7 +1,25 @@
-.env
-menv
+# Secrets: never ship in the image (pass them at run time with --env-file / host env settings)
 .env
 .env.*
-__pycache__
+.env.json
+*.env
+
+# Local environment and caches
+menv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# VCS and editor files
 .git
 .gitignore
+.vscode/
+.kiro/
+.elasticbeanstalk/
+
+# Not needed at run time (tests are excluded from the image)
+tests/
+CLAUDE.md
+DEPLOY.md
+Dockerfile
+.dockerignore
