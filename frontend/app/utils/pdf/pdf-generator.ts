@@ -4,6 +4,8 @@
  */
 
 import jsPDF from 'jspdf';
+import { planPages, CUT_PAD } from './paginate';
+import { PDFLayout } from './types';
 
 export interface PDFConfig {
   orientation: 'portrait' | 'landscape';
@@ -12,15 +14,18 @@ export interface PDFConfig {
   quality: number;
 }
 
+/** Space under the table reserved for the page number, in mm */
+const FOOTER_HEIGHT = 6;
+
 export class PDFGenerator {
   private pdf: jsPDF;
   private config: PDFConfig;
 
   constructor(config: Partial<PDFConfig> = {}) {
     this.config = {
-      orientation: config.orientation || 'portrait',
+      orientation: config.orientation || 'landscape',
       format: config.format || 'a4',
-      margin: config.margin || 10,
+      margin: config.margin ?? 8,
       quality: config.quality || 1.0,
     };
 
@@ -33,112 +38,64 @@ export class PDFGenerator {
   }
 
   /**
-   * Add canvas to PDF with automatic pagination
+   * Add the rendered table: scaled to the page width, cut between rows, header repeated on
+   * every page after the first, page number "n / N" at the bottom center.
    */
-  addCanvas(canvas: HTMLCanvasElement): void {
-    const pdfWidth = this.pdf.internal.pageSize.getWidth();
-    const pdfHeight = this.pdf.internal.pageSize.getHeight();
+  addCanvas(canvas: HTMLCanvasElement, layout: PDFLayout): void {
+    const pageWidth = this.pdf.internal.pageSize.getWidth();
+    const pageHeight = this.pdf.internal.pageSize.getHeight();
     const { margin, quality } = this.config;
 
-    const availableWidth = pdfWidth - 2 * margin;
-    const availableHeight = pdfHeight - 2 * margin;
+    const availableWidth = pageWidth - 2 * margin;
+    const availableHeight = pageHeight - 2 * margin - FOOTER_HEIGHT;
 
-    const canvasAspectRatio = canvas.width / canvas.height;
-    const scaleFactor = availableWidth / canvas.width;
-    const scaledHeight = canvas.height * scaleFactor;
+    const mmPerPx = availableWidth / layout.width; // mm per CSS px of the rendered table
+    const pxY = canvas.height / layout.height; // canvas px per CSS px
 
-    // Single page - fits on one page
-    if (scaledHeight <= availableHeight) {
-      this.addSinglePage(canvas, availableWidth, scaledHeight, margin, quality);
-    } else {
-      // Multi-page - needs pagination
-      this.addMultiplePages(canvas, availableWidth, availableHeight, margin, scaleFactor, quality);
-    }
-  }
+    const slices = planPages(layout, availableHeight / mmPerPx);
+    const header = layout.header;
 
-  /**
-   * Add single page content
-   */
-  private addSinglePage(
-    canvas: HTMLCanvasElement,
-    width: number,
-    height: number,
-    margin: number,
-    quality: number
-  ): void {
-    const imgData = canvas.toDataURL('image/png', quality);
-    const pdfWidth = this.pdf.internal.pageSize.getWidth();
-    const pdfHeight = this.pdf.internal.pageSize.getHeight();
-    
-    const x = (pdfWidth - width) / 2;
-    const y = (pdfHeight - height) / 2;
-    
-    this.pdf.addImage(imgData, 'PNG', x, y, width, height);
-  }
+    slices.forEach((slice, index) => {
+      if (index > 0) this.pdf.addPage();
 
-  /**
-   * Add multi-page content with pagination
-   */
-  private addMultiplePages(
-    canvas: HTMLCanvasElement,
-    availableWidth: number,
-    availableHeight: number,
-    margin: number,
-    scaleFactor: number,
-    quality: number
-  ): void {
-    const scaledHeight = canvas.height * scaleFactor;
-    const pagesNeeded = Math.ceil(scaledHeight / availableHeight);
+      // Source ranges in canvas px. A page that is cut also shows the grid line below the cut;
+      // a continuation page starts 1px lower because the repeated header already ends with that line.
+      const bodyTop = slice.start + (slice.header ? CUT_PAD : 0);
+      const bodyBottom = Math.min(slice.end + (slice.end < layout.height ? CUT_PAD : 0), layout.height);
+      const bodyY = Math.round(bodyTop * pxY);
+      const bodyH = Math.max(Math.round(bodyBottom * pxY) - bodyY, 1);
 
-    for (let page = 0; page < pagesNeeded; page++) {
-      if (page > 0) {
-        this.pdf.addPage();
+      let headerY = 0;
+      let headerH = 0;
+      if (slice.header && header) {
+        headerY = Math.round(header.top * pxY);
+        headerH = Math.min(Math.round((header.bottom + CUT_PAD) * pxY), canvas.height) - headerY;
       }
 
-      const sourceY = (page * availableHeight) / scaleFactor;
-      const sourceHeight = Math.min(
-        availableHeight / scaleFactor,
-        canvas.height - sourceY
-      );
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = headerH + bodyH;
+      const ctx = pageCanvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Failed to get canvas context');
+      }
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+      if (headerH > 0) {
+        ctx.drawImage(canvas, 0, headerY, canvas.width, headerH, 0, 0, canvas.width, headerH);
+      }
+      ctx.drawImage(canvas, 0, bodyY, canvas.width, bodyH, 0, headerH, canvas.width, bodyH);
 
-      const pageCanvas = this.createPageCanvas(canvas, sourceY, sourceHeight);
-      const pageImgData = pageCanvas.toDataURL('image/png', quality);
-      const pageHeight = Math.min(availableHeight, scaledHeight - page * availableHeight);
+      const imageHeight = pageCanvas.height * (availableWidth / pageCanvas.width);
+      const imgData = pageCanvas.toDataURL('image/png', quality);
+      this.pdf.addImage(imgData, 'PNG', margin, margin, availableWidth, imageHeight, undefined, 'FAST');
 
-      this.pdf.addImage(pageImgData, 'PNG', margin, margin, availableWidth, pageHeight);
-    }
-  }
-
-  /**
-   * Create canvas for a single page slice
-   */
-  private createPageCanvas(
-    sourceCanvas: HTMLCanvasElement,
-    sourceY: number,
-    sourceHeight: number
-  ): HTMLCanvasElement {
-    const pageCanvas = document.createElement('canvas');
-    const ctx = pageCanvas.getContext('2d');
-
-    if (!ctx) {
-      throw new Error('Failed to get canvas context');
-    }
-
-    pageCanvas.width = sourceCanvas.width;
-    pageCanvas.height = sourceHeight * (sourceCanvas.width / sourceCanvas.width);
-
-    const sourceYPixels = sourceY * (sourceCanvas.height / sourceCanvas.height);
-    const sourceHeightPixels = sourceHeight * (sourceCanvas.height / sourceCanvas.height);
-
-    ctx.drawImage(
-      sourceCanvas,
-      0, sourceYPixels,
-      sourceCanvas.width, sourceHeightPixels,
-      0, 0,
-      pageCanvas.width, pageCanvas.height
-    );
-
-    return pageCanvas;
+      this.pdf.setFontSize(8);
+      this.pdf.setTextColor(90);
+      this.pdf.text(`${index + 1} / ${slices.length}`, pageWidth / 2, pageHeight - margin - 1.5, {
+        align: 'center',
+      });
+    });
   }
 
   /**

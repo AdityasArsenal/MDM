@@ -7,19 +7,20 @@ import { RefObject } from 'react';
 import { PDFExportOptions, PDFExportCallbacks } from './types';
 import { PDFStyleManager } from './styles';
 import { CanvasRenderer } from './canvas-renderer';
+import { DOMProcessor } from './dom-processor';
 import { PDFGenerator } from './pdf-generator';
 
 export class PDFExporter {
   private styleManager: PDFStyleManager;
-  private originalClassName: string = '';
-  private originalTheme: string | null = null;
 
   constructor() {
     this.styleManager = new PDFStyleManager();
   }
 
   /**
-   * Export HTML element to PDF
+   * Export HTML element to PDF.
+   * The live page is never modified: styles, the 100% zoom, input/button replacement and row
+   * measuring all happen in the html2canvas clone.
    */
   async export(
     elementRef: RefObject<HTMLElement | null>,
@@ -35,15 +36,15 @@ export class PDFExporter {
 
     try {
       callbacks.onProgress?.(10);
-      this.prepareDOM(element);
+      // Input values must be read from the live page (html2canvas only copies attributes)
+      const inputs = DOMProcessor.collectInputs(element);
 
       callbacks.onProgress?.(30);
-      await this.waitForRender();
-
-      callbacks.onProgress?.(50);
-      const canvas = await CanvasRenderer.render(element, {
+      const { canvas, layout } = await CanvasRenderer.render(element, {
         scale: options.scale || 2,
-        width: 794,
+        minWidth: options.minRenderWidth,
+        styles: this.styleManager,
+        inputs,
       });
 
       callbacks.onProgress?.(70);
@@ -55,7 +56,7 @@ export class PDFExporter {
       });
 
       callbacks.onProgress?.(85);
-      pdfGenerator.addCanvas(canvas);
+      pdfGenerator.addCanvas(canvas, layout);
       pdfGenerator.save(options.fileName);
 
       callbacks.onProgress?.(100);
@@ -63,40 +64,6 @@ export class PDFExporter {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       callbacks.onError?.(errorMessage);
-    } finally {
-      this.cleanup(element);
     }
-  }
-
-  /**
-   * Prepare DOM for PDF rendering
-   */
-  private prepareDOM(element: HTMLElement): void {
-    this.originalTheme = document.documentElement.getAttribute('data-theme');
-    this.originalClassName = element.className;
-
-    document.documentElement.setAttribute('data-theme', 'light');
-    this.styleManager.inject();
-    element.className = `${this.originalClassName} pdf-export-container`;
-  }
-
-  /**
-   * Wait for DOM to render with new styles
-   */
-  private async waitForRender(): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, 500));
-  }
-
-  /**
-   * Cleanup DOM after export
-   */
-  private cleanup(element: HTMLElement): void {
-    element.className = this.originalClassName;
-    
-    if (this.originalTheme) {
-      document.documentElement.setAttribute('data-theme', this.originalTheme);
-    }
-    
-    this.styleManager.remove();
   }
 }
