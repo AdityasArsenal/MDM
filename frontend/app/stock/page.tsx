@@ -414,21 +414,19 @@ export default function Stock() {
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableHead className="text-center">ದಿನಾಂಕ</TableHead>
-                  <TableHead className="text-center">ವಿಭಾಗ</TableHead>
-                  <TableHead colSpan={4} className="text-center">ಆರಂಭಿಕ ಶಿಲ್ಕು</TableHead>
-                  <TableHead colSpan={4} className="text-center">ತಿಂಗಳ ಸ್ವೀಕೃತಿ</TableHead>
-                  <TableHead colSpan={4} className="text-center">ಒಟ್ಟು</TableHead>
-                  <TableHead colSpan={4} className="text-center">ದಿನದ ವಿತರಣೆ</TableHead>
-                  <TableHead colSpan={4} className="text-center">ಅಂತಿಮ ಶಿಲ್ಕು</TableHead>
+                  <TableHead rowSpan={2} className="text-center merge-r">ದಿನಾಂಕ</TableHead>
+                  <TableHead rowSpan={2} className="text-center merge-l">ವಿಭಾಗ</TableHead>
+                  <TableHead colSpan={4} className="text-center grp-l grp-r">ಆರಂಭಿಕ ಶಿಲ್ಕು</TableHead>
+                  <TableHead colSpan={4} className="text-center grp-l grp-r">ತಿಂಗಳ ಸ್ವೀಕೃತಿ</TableHead>
+                  <TableHead colSpan={4} className="text-center grp-l grp-r">ಒಟ್ಟು</TableHead>
+                  <TableHead colSpan={4} className="text-center grp-l grp-r">ದಿನದ ವಿತರಣೆ</TableHead>
+                  <TableHead colSpan={4} className="text-center grp-l grp-r">ಅಂತಿಮ ಶಿಲ್ಕು</TableHead>
                 </TableRow>
                 <TableRow>
-                  <TableHead></TableHead>
-                  <TableHead></TableHead>
                   {Array(5).fill(0).map((_, i) => (
                     <React.Fragment key={i}>
-                      {ITEM_HEADINGS.map(item => (
-                        <TableHead key={item.label} className="min-w-[120px] text-center">{item.label} ({item.unit})</TableHead>
+                      {ITEM_HEADINGS.map((item, idx) => (
+                        <TableHead key={item.label} className={`min-w-[120px] text-center${idx === 0 ? ' grp-l' : ''}${idx === ITEM_HEADINGS.length - 1 ? ' grp-r' : ''}`}>{item.label} ({item.unit})</TableHead>
                       ))}
                     </React.Fragment>
                   ))}
@@ -469,75 +467,75 @@ export default function Stock() {
                   return (
                     <React.Fragment key={date}>
                       <TableRow className={isSunday ? 'bg-red-50' : ''}>
-                        <TableCell rowSpan={2} className="font-medium">
+                        <TableCell rowSpan={2} className="font-medium merge-r">
                           {new Date(date).getDate()}
                         </TableCell>
-                        <TableCell>1-5</TableCell>
+                        <TableCell className="merge-l">1-5</TableCell>
                         {isFirstDay ? (
                           <>
-                            <TableCell><SignedNumberInput placeholder="0" value={row1to5.rice_open} onValueChange={v => handleChange(date, '1-5', 'rice_open', v)} className="w-20 text-xs p-1" /></TableCell>
+                            <TableCell className="grp-l"><SignedNumberInput placeholder="0" value={row1to5.rice_open} onValueChange={v => handleChange(date, '1-5', 'rice_open', v)} className="w-20 text-xs p-1" /></TableCell>
                             <TableCell><SignedNumberInput placeholder="0" value={row1to5.wheat_open} onValueChange={v => handleChange(date, '1-5', 'wheat_open', v)} className="w-20 text-xs p-1" /></TableCell>
                             <TableCell><SignedNumberInput placeholder="0" value={row1to5.oil_open} onValueChange={v => handleChange(date, '1-5', 'oil_open', v)} className="w-20 text-xs p-1" /></TableCell>
-                            <TableCell><SignedNumberInput placeholder="0" value={row1to5.pulse_open} onValueChange={v => handleChange(date, '1-5', 'pulse_open', v)} className="w-20 text-xs p-1" /></TableCell>
+                            <TableCell className="grp-r"><SignedNumberInput placeholder="0" value={row1to5.pulse_open} onValueChange={v => handleChange(date, '1-5', 'pulse_open', v)} className="w-20 text-xs p-1" /></TableCell>
                           </>
                         ) : (
                           <>
-                            <TableCell>{fmt(opening1to5.rice)}</TableCell>
+                            <TableCell className="grp-l">{fmt(opening1to5.rice)}</TableCell>
                             <TableCell>{fmt(opening1to5.wheat)}</TableCell>
                             <TableCell>{fmt(opening1to5.oil)}</TableCell>
-                            <TableCell>{fmt(opening1to5.pulse)}</TableCell>
+                            <TableCell className="grp-r">{fmt(opening1to5.pulse)}</TableCell>
                           </>
                         )}
-                        <TableCell><SignedNumberInput placeholder="0" value={row1to5.rice_add} onValueChange={v => handleChange(date, '1-5', 'rice_add', v)} allowNegative={false} className="w-20 text-xs p-1" /></TableCell>
+                        <TableCell className="grp-l"><SignedNumberInput placeholder="0" value={row1to5.rice_add} onValueChange={v => handleChange(date, '1-5', 'rice_add', v)} allowNegative={false} className="w-20 text-xs p-1" /></TableCell>
                         <TableCell><SignedNumberInput placeholder="0" value={row1to5.wheat_add} onValueChange={v => handleChange(date, '1-5', 'wheat_add', v)} allowNegative={false} className="w-20 text-xs p-1" /></TableCell>
                         <TableCell><SignedNumberInput placeholder="0" value={row1to5.oil_add} onValueChange={v => handleChange(date, '1-5', 'oil_add', v)} allowNegative={false} className="w-20 text-xs p-1" /></TableCell>
-                        <TableCell><SignedNumberInput placeholder="0" value={row1to5.pulse_add} onValueChange={v => handleChange(date, '1-5', 'pulse_add', v)} allowNegative={false} className="w-20 text-xs p-1" /></TableCell>
-                        <TableCell>{fmt(totals1to5.rice)}</TableCell>
+                        <TableCell className="grp-r"><SignedNumberInput placeholder="0" value={row1to5.pulse_add} onValueChange={v => handleChange(date, '1-5', 'pulse_add', v)} allowNegative={false} className="w-20 text-xs p-1" /></TableCell>
+                        <TableCell className="grp-l">{fmt(totals1to5.rice)}</TableCell>
                         <TableCell>{fmt(totals1to5.wheat)}</TableCell>
                         <TableCell>{fmt(totals1to5.oil)}</TableCell>
-                        <TableCell>{fmt(totals1to5.pulse)}</TableCell>
-                        <TableCell>{fmt(row1to5.rice_used)}</TableCell>
+                        <TableCell className="grp-r">{fmt(totals1to5.pulse)}</TableCell>
+                        <TableCell className="grp-l">{fmt(row1to5.rice_used)}</TableCell>
                         <TableCell>{fmt(row1to5.wheat_used)}</TableCell>
                         <TableCell>{fmt(row1to5.oil_used)}</TableCell>
-                        <TableCell>{fmt(row1to5.pulse_used)}</TableCell>
-                        <TableCell>{fmt(closing1to5.rice)}</TableCell>
+                        <TableCell className="grp-r">{fmt(row1to5.pulse_used)}</TableCell>
+                        <TableCell className="grp-l">{fmt(closing1to5.rice)}</TableCell>
                         <TableCell>{fmt(closing1to5.wheat)}</TableCell>
                         <TableCell>{fmt(closing1to5.oil)}</TableCell>
-                        <TableCell>{fmt(closing1to5.pulse)}</TableCell>
+                        <TableCell className="grp-r">{fmt(closing1to5.pulse)}</TableCell>
                       </TableRow>
                       <TableRow className={isSunday ? 'bg-red-50' : ''}>
-                        <TableCell>6-10</TableCell>
+                        <TableCell className="merge-l">6-10</TableCell>
                         {isFirstDay ? (
                           <>
-                            <TableCell><SignedNumberInput placeholder="0" value={row6to10.rice_open} onValueChange={v => handleChange(date, '6-10', 'rice_open', v)} className="w-20 text-xs p-1" /></TableCell>
+                            <TableCell className="grp-l"><SignedNumberInput placeholder="0" value={row6to10.rice_open} onValueChange={v => handleChange(date, '6-10', 'rice_open', v)} className="w-20 text-xs p-1" /></TableCell>
                             <TableCell><SignedNumberInput placeholder="0" value={row6to10.wheat_open} onValueChange={v => handleChange(date, '6-10', 'wheat_open', v)} className="w-20 text-xs p-1" /></TableCell>
                             <TableCell><SignedNumberInput placeholder="0" value={row6to10.oil_open} onValueChange={v => handleChange(date, '6-10', 'oil_open', v)} className="w-20 text-xs p-1" /></TableCell>
-                            <TableCell><SignedNumberInput placeholder="0" value={row6to10.pulse_open} onValueChange={v => handleChange(date, '6-10', 'pulse_open', v)} className="w-20 text-xs p-1" /></TableCell>
+                            <TableCell className="grp-r"><SignedNumberInput placeholder="0" value={row6to10.pulse_open} onValueChange={v => handleChange(date, '6-10', 'pulse_open', v)} className="w-20 text-xs p-1" /></TableCell>
                           </>
                         ) : (
                           <>
-                            <TableCell>{fmt(opening6to10.rice)}</TableCell>
+                            <TableCell className="grp-l">{fmt(opening6to10.rice)}</TableCell>
                             <TableCell>{fmt(opening6to10.wheat)}</TableCell>
                             <TableCell>{fmt(opening6to10.oil)}</TableCell>
-                            <TableCell>{fmt(opening6to10.pulse)}</TableCell>
+                            <TableCell className="grp-r">{fmt(opening6to10.pulse)}</TableCell>
                           </>
                         )}
-                        <TableCell><SignedNumberInput placeholder="0" value={row6to10.rice_add} onValueChange={v => handleChange(date, '6-10', 'rice_add', v)} allowNegative={false} className="w-20 text-xs p-1" /></TableCell>
+                        <TableCell className="grp-l"><SignedNumberInput placeholder="0" value={row6to10.rice_add} onValueChange={v => handleChange(date, '6-10', 'rice_add', v)} allowNegative={false} className="w-20 text-xs p-1" /></TableCell>
                         <TableCell><SignedNumberInput placeholder="0" value={row6to10.wheat_add} onValueChange={v => handleChange(date, '6-10', 'wheat_add', v)} allowNegative={false} className="w-20 text-xs p-1" /></TableCell>
                         <TableCell><SignedNumberInput placeholder="0" value={row6to10.oil_add} onValueChange={v => handleChange(date, '6-10', 'oil_add', v)} allowNegative={false} className="w-20 text-xs p-1" /></TableCell>
-                        <TableCell><SignedNumberInput placeholder="0" value={row6to10.pulse_add} onValueChange={v => handleChange(date, '6-10', 'pulse_add', v)} allowNegative={false} className="w-20 text-xs p-1" /></TableCell>
-                        <TableCell>{fmt(totals6to10.rice)}</TableCell>
+                        <TableCell className="grp-r"><SignedNumberInput placeholder="0" value={row6to10.pulse_add} onValueChange={v => handleChange(date, '6-10', 'pulse_add', v)} allowNegative={false} className="w-20 text-xs p-1" /></TableCell>
+                        <TableCell className="grp-l">{fmt(totals6to10.rice)}</TableCell>
                         <TableCell>{fmt(totals6to10.wheat)}</TableCell>
                         <TableCell>{fmt(totals6to10.oil)}</TableCell>
-                        <TableCell>{fmt(totals6to10.pulse)}</TableCell>
-                        <TableCell>{fmt(row6to10.rice_used)}</TableCell>
+                        <TableCell className="grp-r">{fmt(totals6to10.pulse)}</TableCell>
+                        <TableCell className="grp-l">{fmt(row6to10.rice_used)}</TableCell>
                         <TableCell>{fmt(row6to10.wheat_used)}</TableCell>
                         <TableCell>{fmt(row6to10.oil_used)}</TableCell>
-                        <TableCell>{fmt(row6to10.pulse_used)}</TableCell>
-                        <TableCell>{fmt(closing6to10.rice)}</TableCell>
+                        <TableCell className="grp-r">{fmt(row6to10.pulse_used)}</TableCell>
+                        <TableCell className="grp-l">{fmt(closing6to10.rice)}</TableCell>
                         <TableCell>{fmt(closing6to10.wheat)}</TableCell>
                         <TableCell>{fmt(closing6to10.oil)}</TableCell>
-                        <TableCell>{fmt(closing6to10.pulse)}</TableCell>
+                        <TableCell className="grp-r">{fmt(closing6to10.pulse)}</TableCell>
                       </TableRow>
                     </React.Fragment>
                   );
