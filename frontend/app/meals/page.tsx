@@ -51,8 +51,8 @@ interface MealTableRowProps {
 }
 
 const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggle, missingMeal, missingPulses, rates }: MealTableRowProps) => {
-  // Task 5: Prevent state update storms - use refs to batch rapid input changes
-  const inputTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Task 5: Prevent state update storms - one pending timer per count box
+  const timeoutRefs = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
 
   const { c1, c2, totalSadilvaru, totalChildren, isRowSunday, isRowToday } = useMemo(() => {
     const c1 = calc1to5(rates, row.cnt_1to5, row.meal_type, row.has_pulses);
@@ -74,13 +74,14 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
     // Backend needs integers >= 0: drop decimals, negatives and NaN
     const finalValue = Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
     
-    // Clear any pending timeout
-    if (inputTimeoutRef.current) {
-      clearTimeout(inputTimeoutRef.current);
+    // Clear any pending timeout for this box
+    const pending = timeoutRefs.current[field];
+    if (pending) {
+      clearTimeout(pending);
     }
     
     // Batch updates - only commit to state after brief pause in typing
-    inputTimeoutRef.current = setTimeout(() => {
+    timeoutRefs.current[field] = setTimeout(() => {
       onInputChange(row.id, field, finalValue);
     }, 50); // 50ms is imperceptible but batches rapid keystrokes
     
@@ -92,94 +93,105 @@ const MealTableRow = memo(({ row, onInputChange, onMealTypeChange, onPulsesToggl
     }
   }, [row.id, onInputChange]);
 
+  const rowClass = isRowToday ? 'bg-blue-100' : '';
+  const q = (n: number) => (row.meal_type ? n : 0).toFixed(3);
+
   return (
-    <TableRow className={isRowToday ? 'bg-blue-100' : ''}>
-      <TableCell className={`font-medium ${
-        isRowSunday ? 'text-red-600 font-semibold' : 'text-black'
-      }`}>
-        {formatDate(row.date)}
-      </TableCell>
-      <TableCell>
-        <div className={`flex flex-col gap-1 ${missingMeal ? 'ring-2 ring-red-500 rounded p-0.5' : ''}`}>
-          <button
-            onClick={() => onMealTypeChange(row.id, 'rice')}
-            className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
-              row.meal_type === 'rice'
-                ? 'bg-blue-500 text-white font-semibold'
-                : 'bg-gray-200 text-black hover:bg-gray-300'
-            }`}>
-            {row.meal_type === 'rice' && <span className="text-white">✓</span>}
-            <span>ಅಕ್ಕಿ</span>
-          </button>
-          <button
-            onClick={() => onMealTypeChange(row.id, 'wheat')}
-            className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
-              row.meal_type === 'wheat'
-                ? 'bg-orange-500 text-white font-semibold'
-                : 'bg-gray-200 text-black hover:bg-gray-300'
-            }`}>
-            {row.meal_type === 'wheat' && <span className="text-white">✓</span>}
-            <span>ಗೋಧಿ</span>
-          </button>
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className={`flex flex-col gap-1 ${missingPulses ? 'ring-2 ring-red-500 rounded p-0.5' : ''}`}>
-          <button
-            onClick={() => onPulsesToggle(row.id, true)}
-            className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
-              row.has_pulses === true
-                ? 'bg-green-500 text-white font-semibold'
-                : 'bg-gray-200 text-black hover:bg-gray-300'
-            }`}
-          >
-            {row.has_pulses === true && <span className="text-white">✓</span>}
-            <span>Yes</span>
-          </button>
-          <button
-            onClick={() => onPulsesToggle(row.id, false)}
-            className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
-              row.has_pulses === false
-                ? 'bg-red-500 text-white font-semibold'
-                : 'bg-gray-200 text-black hover:bg-gray-300'
-            }`}
-          >
-            {row.has_pulses === false && <span className="text-white">✓</span>}
-            <span>No</span>
-          </button>
-        </div>
-      </TableCell>
-      <TableCell>
-        <Input
-          type="number"
-          defaultValue={row.cnt_1to5 > 0 ? row.cnt_1to5 : ''}
-          onChange={e => handleInputChange(e, 'cnt_1to5')}
-          className="w-full text-black"
-          placeholder="0"
-        />
-      </TableCell>
-      <TableCell>{(row.meal_type ? c1.rice : 0).toFixed(3)}</TableCell>
-      <TableCell>{(row.meal_type ? c1.wheat : 0).toFixed(3)}</TableCell>
-      <TableCell>{(row.meal_type ? c1.oil : 0).toFixed(3)}</TableCell>
-      <TableCell>{(row.meal_type ? c1.pulses : 0).toFixed(3)}</TableCell>
-      <TableCell className="border-r">{(row.meal_type ? c1.sadilvaru : 0).toFixed(3)}</TableCell>
-      <TableCell>
-        <Input
-          type="number"
-          defaultValue={row.cnt_6to10 > 0 ? row.cnt_6to10 : ''}
-          onChange={e => handleInputChange(e, 'cnt_6to10')}
-          className="w-20 text-black"
-          placeholder="0"
-        />
-      </TableCell>
-      <TableCell>{(row.meal_type ? c2.rice : 0).toFixed(3)}</TableCell>
-      <TableCell>{(row.meal_type ? c2.wheat : 0).toFixed(3)}</TableCell>
-      <TableCell>{(row.meal_type ? c2.oil : 0).toFixed(3)}</TableCell>
-      <TableCell>{(row.meal_type ? c2.pulses : 0).toFixed(3)}</TableCell>
-      <TableCell className="border-r">{(row.meal_type ? c2.sadilvaru : 0).toFixed(3)}</TableCell>
-      <TableCell className="font-medium text-center text-black">{(row.meal_type ? totalSadilvaru : 0).toFixed(3)}</TableCell>
-      <TableCell className="font-medium text-center text-black">{totalChildren}</TableCell>
-    </TableRow>
+    <>
+      {/* Batch row 1: class 1-5. Date, choices and totals span both rows. */}
+      <TableRow className={rowClass}>
+        <TableCell rowSpan={2} className={`grp-l font-medium ${
+          isRowSunday ? 'text-red-600 font-semibold' : 'text-black'
+        }`}>
+          {formatDate(row.date)}
+        </TableCell>
+        <TableCell rowSpan={2}>
+          <div className={`flex flex-col gap-1 ${missingMeal ? 'ring-2 ring-red-500 rounded p-0.5' : ''}`}>
+            <button
+              onClick={() => onMealTypeChange(row.id, 'rice')}
+              className={`w-full px-2 py-1 text-sm rounded flex items-center justify-center gap-1 transition-colors ${
+                row.meal_type === 'rice'
+                  ? 'bg-blue-500 text-white font-semibold'
+                  : 'bg-gray-200 text-black hover:bg-gray-300'
+              }`}>
+              {row.meal_type === 'rice' && <span className="text-white">✓</span>}
+              <span>ಅಕ್ಕಿ</span>
+            </button>
+            <button
+              onClick={() => onMealTypeChange(row.id, 'wheat')}
+              className={`w-full px-2 py-1 text-sm rounded flex items-center justify-center gap-1 transition-colors ${
+                row.meal_type === 'wheat'
+                  ? 'bg-orange-500 text-white font-semibold'
+                  : 'bg-gray-200 text-black hover:bg-gray-300'
+              }`}>
+              {row.meal_type === 'wheat' && <span className="text-white">✓</span>}
+              <span>ಗೋಧಿ</span>
+            </button>
+          </div>
+        </TableCell>
+        <TableCell rowSpan={2} className="grp-r">
+          <div className={`flex flex-col gap-1 ${missingPulses ? 'ring-2 ring-red-500 rounded p-0.5' : ''}`}>
+            <button
+              onClick={() => onPulsesToggle(row.id, true)}
+              className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
+                row.has_pulses === true
+                  ? 'bg-green-500 text-white font-semibold'
+                  : 'bg-gray-200 text-black hover:bg-gray-300'
+              }`}
+            >
+              {row.has_pulses === true && <span className="text-white">✓</span>}
+              <span>Yes</span>
+            </button>
+            <button
+              onClick={() => onPulsesToggle(row.id, false)}
+              className={`w-full px-2 py-1 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
+                row.has_pulses === false
+                  ? 'bg-red-500 text-white font-semibold'
+                  : 'bg-gray-200 text-black hover:bg-gray-300'
+              }`}
+            >
+              {row.has_pulses === false && <span className="text-white">✓</span>}
+              <span>No</span>
+            </button>
+          </div>
+        </TableCell>
+        <TableCell className="grp-l text-center text-black">1-5</TableCell>
+        <TableCell className="grp-r">
+          <Input
+            type="number"
+            defaultValue={row.cnt_1to5 > 0 ? row.cnt_1to5 : ''}
+            onChange={e => handleInputChange(e, 'cnt_1to5')}
+            className="w-full text-black"
+            placeholder="0"
+          />
+        </TableCell>
+        <TableCell className="grp-l">{q(c1.rice)}</TableCell>
+        <TableCell>{q(c1.wheat)}</TableCell>
+        <TableCell>{q(c1.oil)}</TableCell>
+        <TableCell>{q(c1.pulses)}</TableCell>
+        <TableCell className="grp-r">{q(c1.sadilvaru)}</TableCell>
+        <TableCell rowSpan={2} className="grp-l font-medium text-center text-black">{(row.meal_type ? totalSadilvaru : 0).toFixed(3)}</TableCell>
+        <TableCell rowSpan={2} className="grp-r font-medium text-center text-black">{totalChildren}</TableCell>
+      </TableRow>
+      {/* Batch row 2: class 6-10 */}
+      <TableRow className={rowClass}>
+        <TableCell className="grp-l text-center text-black">6-10</TableCell>
+        <TableCell className="grp-r">
+          <Input
+            type="number"
+            defaultValue={row.cnt_6to10 > 0 ? row.cnt_6to10 : ''}
+            onChange={e => handleInputChange(e, 'cnt_6to10')}
+            className="w-full text-black"
+            placeholder="0"
+          />
+        </TableCell>
+        <TableCell className="grp-l">{q(c2.rice)}</TableCell>
+        <TableCell>{q(c2.wheat)}</TableCell>
+        <TableCell>{q(c2.oil)}</TableCell>
+        <TableCell>{q(c2.pulses)}</TableCell>
+        <TableCell className="grp-r">{q(c2.sadilvaru)}</TableCell>
+      </TableRow>
+    </>
   );
 });
 
@@ -517,40 +529,25 @@ export default function Meals() {
               <Table>
               <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={20} className="text-center">
+                  <TableCell colSpan={12} className="text-center">
                     <div className="text-lg font-semibold text-black">
                       {monthName} {year} - Meal Planning Schedule
                     </div>
                   </TableCell>
                 </TableRow>
-
                 <TableRow>
-                  <TableHead className="text-center font-bold text-black">Date</TableHead>
-                  <TableHead className="text-center font-bold text-black">Meal</TableHead>
-                  <TableHead className="text-center font-bold text-black"></TableHead>
-                  <TableHead colSpan={6} className="text-center border-r font-bold text-black">1-5</TableHead>
-                  <TableHead colSpan={6} className="text-center border-r font-bold text-black">6-10</TableHead>
-                  <TableHead className="text-center font-bold text-black">ಒಟ್ಟು ಸಾದಿಲ್ವಾರು</TableHead>
-                  <TableHead className="text-center font-bold text-black">ಒಟ್ಟು ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
-                </TableRow>
-                <TableRow>
-                  <TableHead className="w-[100px] text-black"></TableHead>
+                  <TableHead className="grp-l w-[100px] text-black">ದಿನಾಂಕ</TableHead>
                   <TableHead className="w-[120px] text-black">Meal Type</TableHead>
-                  <TableHead className="w-[120px] text-black">ಬೇಳೆ (yes/no)</TableHead>
-                  <TableHead className="min-w-[120px] text-center text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
-                  <TableHead className="text-black">ಅಕ್ಕಿ (kg)</TableHead>
+                  <TableHead className="grp-r w-[120px] text-black">ಬೇಳೆ (yes/no)</TableHead>
+                  <TableHead className="grp-l text-center text-black">ವಿಭಾಗ</TableHead>
+                  <TableHead className="grp-r min-w-[120px] text-center text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
+                  <TableHead className="grp-l text-black">ಅಕ್ಕಿ (kg)</TableHead>
                   <TableHead className="text-black">ಗೋಧಿ (kg)</TableHead>
                   <TableHead className="text-black">ಎಣ್ಣೆ (L)</TableHead>
                   <TableHead className="text-black">ಬೇಳೆ (kg)</TableHead>
-                  <TableHead className="border-r text-black">ಸಾದಿಲ್ವಾರು</TableHead>
-                  <TableHead className="min-w-[120px] text-center text-black">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
-                  <TableHead className="text-black">ಅಕ್ಕಿ (kg)</TableHead>
-                  <TableHead className="text-black">ಗೋಧಿ (kg)</TableHead>
-                  <TableHead className="text-black">ಎಣ್ಣೆ (L)</TableHead>
-                  <TableHead className="text-black">ಬೇಳೆ (kg)</TableHead>
-                  <TableHead className="border-r text-black">ಸಾದಿಲ್ವಾರು</TableHead>
-                  <TableHead className="text-center text-black"></TableHead>
-                  <TableHead className="text-center text-black"></TableHead>
+                  <TableHead className="grp-r text-black">ಸಾದಿಲ್ವಾರು</TableHead>
+                  <TableHead className="grp-l text-center text-black">ಒಟ್ಟು ಸಾದಿಲ್ವಾರು</TableHead>
+                  <TableHead className="grp-r text-center text-black">ಒಟ್ಟು ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -569,21 +566,25 @@ export default function Meals() {
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={3} className="font-bold text-black">Grand Total</TableCell>
-                  <TableCell className="font-bold text-black">{totals.sumCount1to5}</TableCell>
-                  <TableCell className="font-bold text-black">{totals.rice1.toFixed(3)}</TableCell>
+                  <TableCell colSpan={3} rowSpan={2} className="grp-l grp-r font-bold text-black">Grand Total</TableCell>
+                  <TableCell className="grp-l font-bold text-center text-black">1-5</TableCell>
+                  <TableCell className="grp-r font-bold text-black">{totals.sumCount1to5}</TableCell>
+                  <TableCell className="grp-l font-bold text-black">{totals.rice1.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.wheat1.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.oil1.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.pulses1.toFixed(3)}</TableCell>
-                  <TableCell className="border-r font-bold text-black">{totals.sadil1.toFixed(3)}</TableCell>
-                  <TableCell className="font-bold text-black">{totals.sumCount6to10}</TableCell>
-                  <TableCell className="font-bold text-black">{totals.rice6.toFixed(3)}</TableCell>
+                  <TableCell className="grp-r font-bold text-black">{totals.sadil1.toFixed(3)}</TableCell>
+                  <TableCell rowSpan={2} className="grp-l font-bold text-center text-black">{(totals.sadil1 + totals.sadil6).toFixed(3)}</TableCell>
+                  <TableCell rowSpan={2} className="grp-r font-bold text-center text-black">{totals.sumCount1to5 + totals.sumCount6to10}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="grp-l font-bold text-center text-black">6-10</TableCell>
+                  <TableCell className="grp-r font-bold text-black">{totals.sumCount6to10}</TableCell>
+                  <TableCell className="grp-l font-bold text-black">{totals.rice6.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.wheat6.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.oil6.toFixed(3)}</TableCell>
                   <TableCell className="font-bold text-black">{totals.pulses6.toFixed(3)}</TableCell>
-                  <TableCell className="border-r font-bold text-black">{totals.sadil6.toFixed(3)}</TableCell>
-                  <TableCell className="font-bold text-center text-black">{(totals.sadil1 + totals.sadil6).toFixed(3)}</TableCell>
-                  <TableCell className="font-bold text-center text-black">{totals.sumCount1to5 + totals.sumCount6to10}</TableCell>
+                  <TableCell className="grp-r font-bold text-black">{totals.sadil6.toFixed(3)}</TableCell>
                 </TableRow>
               </TableFooter>
             </Table>
