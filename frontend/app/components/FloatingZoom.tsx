@@ -52,14 +52,13 @@ export function FloatingZoom({ zoom, setZoom }: FloatingZoomProps) {
 
   if (typing) return null;
 
-  // Closed: tucked low in the corner. Open: lifted 10px so the "-" button below stays on screen.
   const circle =
     "absolute left-0 flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 shadow-md active:bg-gray-900 disabled:opacity-40";
 
   return (
     <div
       ref={rootRef}
-      className={`fixed left-1.5 z-40 h-8 w-8 transition-[bottom] duration-150 ${open ? "bottom-[46px]" : "bottom-[36px]"}`}
+      className="fixed bottom-[46px] left-1.5 z-40 h-8 w-8"
       data-pdf-ignore
     >
       {open && (
