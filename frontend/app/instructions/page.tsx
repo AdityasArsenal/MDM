@@ -59,8 +59,8 @@ export default function InstructionsPage() {
                 <li>Indicate whether pulses (ಬೇಳೆ) are included (Yes/No)</li>
                 <li>Enter the number of children in age groups 1-5 and 6-10</li>
                 <li>The system automatically calculates ingredient quantities</li>
-                <li>Click &quot;Save All&quot; to save your data</li>
-                <li>Use &quot;Download PDF&quot; to export the report</li>
+                <li>Click &quot;Save&quot; to save your data</li>
+                <li>Tap the download icon above the table to export the PDF</li>
               </ol>
               <p className="text-lg text-gray-700 mt-4">
                 <strong>Note:</strong> Sundays are highlighted in red and are typically non-working days.
