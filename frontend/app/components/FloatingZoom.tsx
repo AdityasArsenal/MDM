@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MinusIcon, PlusIcon, UndoIcon, ZoomIcon } from "./icons";
 
 interface FloatingZoomProps {
@@ -20,6 +20,7 @@ const round = (n: number) => Math.round(n * 100) / 100;
 export function FloatingZoom({ zoom, setZoom }: FloatingZoomProps) {
   const [open, setOpen] = useState(false);
   const [typing, setTyping] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const inTable = (t: EventTarget | null) =>
@@ -33,30 +34,38 @@ export function FloatingZoom({ zoom, setZoom }: FloatingZoomProps) {
     const onOut = (e: FocusEvent) => {
       if (inTable(e.target)) setTyping(false);
     };
+    // Touching or clicking anywhere else closes the popped buttons again
+    const onPointer = (e: Event) => {
+      if (rootRef.current && e.target instanceof Node && !rootRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
     document.addEventListener("focusin", onIn);
     document.addEventListener("focusout", onOut);
+    document.addEventListener("pointerdown", onPointer);
     return () => {
       document.removeEventListener("focusin", onIn);
       document.removeEventListener("focusout", onOut);
+      document.removeEventListener("pointerdown", onPointer);
     };
   }, []);
 
   if (typing) return null;
 
   const circle =
-    "absolute left-0 flex h-12 w-12 items-center justify-center rounded-full border border-gray-400 bg-white text-black shadow-lg active:bg-gray-100 disabled:opacity-40";
+    "absolute left-0 flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 shadow-md active:bg-gray-900 disabled:opacity-40";
 
   return (
-    <div className="fixed bottom-24 left-4 z-40 h-12 w-12" data-pdf-ignore>
+    <div ref={rootRef} className="fixed bottom-14 left-1.5 z-40 h-8 w-8" data-pdf-ignore>
       {open && (
         <button
           type="button"
           aria-label="Zoom in"
-          className={`${circle} -top-14`}
+          className={`${circle} -top-10`}
           disabled={zoom >= MAX}
           onClick={() => setZoom((z) => Math.min(MAX, round(z + STEP)))}
         >
-          <PlusIcon />
+          <PlusIcon className="h-3.5 w-3.5" />
         </button>
       )}
       <button
@@ -72,17 +81,17 @@ export function FloatingZoom({ zoom, setZoom }: FloatingZoomProps) {
           }
         }}
       >
-        {open ? <UndoIcon /> : <ZoomIcon />}
+        {open ? <UndoIcon className="h-3.5 w-3.5" /> : <ZoomIcon className="h-3.5 w-3.5" />}
       </button>
       {open && (
         <button
           type="button"
           aria-label="Zoom out"
-          className={`${circle} top-14`}
+          className={`${circle} top-10`}
           disabled={zoom <= MIN}
           onClick={() => setZoom((z) => Math.max(MIN, round(z - STEP)))}
         >
-          <MinusIcon />
+          <MinusIcon className="h-3.5 w-3.5" />
         </button>
       )}
     </div>

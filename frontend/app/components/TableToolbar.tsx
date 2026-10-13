@@ -11,7 +11,7 @@ interface TableToolbarProps {
 }
 
 const btn =
-  "flex h-9 w-9 items-center justify-center rounded border bg-white text-black shadow-sm disabled:opacity-40";
+  "flex h-7 w-7 items-center justify-center rounded shadow-sm disabled:opacity-40";
 
 // Icon-only buttons for the top-left corner of a table: pencil (edit rates) then download (PDF).
 // data-pdf-ignore keeps them out of the exported PDF.
@@ -23,23 +23,22 @@ export function TableToolbar({ onEditRates, editDisabled, onDownload, downloadDi
           type="button"
           aria-label="Edit rates"
           title="Edit rates"
-          className={`${btn} border-orange-500 bg-orange-500 hover:bg-orange-600`}
-          style={{ color: "#fff" }}
+          className={`${btn} bg-orange-500 hover:bg-orange-600`}
           disabled={editDisabled}
           onClick={onEditRates}
         >
-          <PencilIcon />
+          <PencilIcon className="h-4 w-4" />
         </button>
       )}
       <button
         type="button"
         aria-label="Download PDF"
         title="Download"
-        className={`${btn} border-gray-400 hover:bg-gray-100`}
+        className={`${btn} bg-gray-700 hover:bg-gray-900`}
         disabled={downloadDisabled}
         onClick={onDownload}
       >
-        <DownloadIcon />
+        <DownloadIcon className="h-4 w-4" />
       </button>
     </div>
   );

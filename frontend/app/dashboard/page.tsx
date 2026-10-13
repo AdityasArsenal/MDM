@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
-import { SheetSelector } from '@/app/components/SheetSelector';
 import { MonthYearPicker, MONTHS } from '@/app/components/MonthYearPicker';
 import { AppHeader } from '@/app/components/AppHeader';
 import { authFetch } from '@/app/utils/api';
@@ -17,7 +16,6 @@ const sheets: { name: SheetName; displayName: string; path: string }[] = [
 
 export default function Dashboard() {
   const router = useRouter();
-  const [selectedSheet, setSelectedSheet] = useState('');
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
   // Read from localStorage on the client only; the server snapshot is ''
@@ -63,11 +61,6 @@ export default function Dashboard() {
     router.push(path);
   };
 
-  const handleNavigate = () => {
-    const sheet = sheets.find(s => s.name === selectedSheet);
-    if (sheet) openSheet(sheet.path);
-  };
-
   const period = `${MONTHS[month - 1]} ${year}`;
 
   return (
@@ -107,24 +100,6 @@ export default function Dashboard() {
               ))}
             </ul>
           </nav>
-
-          {/* Dropdown flow (secondary) */}
-          <details className="mt-5 border-t pt-4">
-            <summary className="flex min-h-[44px] cursor-pointer items-center text-base font-medium text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
-              Or choose from a list
-            </summary>
-            <div className="mt-3 space-y-4">
-              <SheetSelector sheets={sheets} value={selectedSheet} onValueChange={setSelectedSheet} />
-              <button
-                type="button"
-                onClick={handleNavigate}
-                disabled={!selectedSheet}
-                className="min-h-[48px] w-full rounded-lg bg-blue-600 px-4 text-lg font-medium text-white active:bg-blue-800 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-              >
-                Open Selected Sheet
-              </button>
-            </div>
-          </details>
         </div>
 
         {/* Info Card */}
