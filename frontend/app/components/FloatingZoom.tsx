@@ -62,6 +62,7 @@ export function FloatingZoom({ zoom, setZoom }: FloatingZoomProps) {
           type="button"
           aria-label="Zoom in"
           className={`${circle} -top-10`}
+          style={{ color: "#fff" }}
           disabled={zoom >= MAX}
           onClick={() => setZoom((z) => Math.min(MAX, round(z + STEP)))}
         >
@@ -72,6 +73,7 @@ export function FloatingZoom({ zoom, setZoom }: FloatingZoomProps) {
         type="button"
         aria-label={open ? "Reset table size" : "Change table size"}
         className={`${circle} top-0`}
+        style={{ color: "#fff" }}
         onClick={() => {
           if (open) {
             setZoom(() => 1);
@@ -88,6 +90,7 @@ export function FloatingZoom({ zoom, setZoom }: FloatingZoomProps) {
           type="button"
           aria-label="Zoom out"
           className={`${circle} top-10`}
+          style={{ color: "#fff" }}
           disabled={zoom <= MIN}
           onClick={() => setZoom((z) => Math.max(MIN, round(z - STEP)))}
         >

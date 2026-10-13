@@ -34,7 +34,7 @@ export function TableToolbar({ onEditRates, editDisabled, onDownload, downloadDi
         type="button"
         aria-label="Download PDF"
         title="Download"
-        className={`${btn} bg-gray-700 hover:bg-gray-900`}
+        className={`${btn} bg-blue-600 hover:bg-blue-700`}
         disabled={downloadDisabled}
         onClick={onDownload}
       >
