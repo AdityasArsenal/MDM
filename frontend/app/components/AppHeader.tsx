@@ -1,4 +1,5 @@
-import { Button } from '@/app/components/ui/button';
+'use client';
+
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 
@@ -9,7 +10,19 @@ interface AppHeaderProps {
   userName?: string;
 }
 
-export function AppHeader({ title, subtitle, showBackButton = true, userName }: AppHeaderProps) {
+const getInitials = (name: string) =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .map(word => word.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+const tapButton =
+  'inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-base font-medium text-gray-800 active:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2';
+
+export function AppHeader({ showBackButton = true, userName }: AppHeaderProps) {
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -19,82 +32,89 @@ export function AppHeader({ title, subtitle, showBackButton = true, userName }: 
     router.push('/');
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  // Close dropdown when clicking outside
+  // Close the menu on any outside tap/click (touch + mouse) or Escape.
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    if (!showDropdown) return;
+    const handleOutside = (event: Event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowDropdown(false);
     };
-  }, []);
+    document.addEventListener('pointerdown', handleOutside);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutside);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [showDropdown]);
 
   return (
-    <div className="bg-white shadow-sm border-b mb-4">
-      <div className="max-w-7xl mx-auto px-2 py-2 flex justify-between items-center">
-        <div className="flex items-center gap-1">
-          <img src="/logo.png" alt="MDM Logo" className="w-10 h-10" />
-          <div>
-            <h1 className="text-[27px] font-bold text-gray-800 px-2">MDM Calculator</h1>
-            {userName && <p className="text-[15px] text-gray-600 px-2">welcome {userName.toLowerCase()}</p>}
+    <header className="mb-4 border-b bg-white shadow-sm">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-2 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="" width={40} height={40} className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-bold leading-tight text-gray-800 sm:text-2xl">
+              MDM Calculator
+            </h1>
+            {userName && (
+              <p className="truncate text-base leading-tight text-gray-600">
+                Welcome, {userName.toLowerCase()}
+              </p>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex shrink-0 items-center gap-2">
           {showBackButton && (
-            <Button 
-              onClick={() => router.push('/dashboard')} 
-              variant="outline"
-              size="sm"
-            >
+            <button type="button" onClick={() => router.push('/dashboard')} className={tapButton}>
               ← Dashboard
-            </Button>
+            </button>
           )}
-          
-          {/* Profile Button */}
-          {userName && (
+
+          {userName ? (
             <div className="relative" ref={dropdownRef}>
               <button
-                onClick={() => setShowDropdown(!showDropdown)}
-                className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold hover:bg-blue-700 transition-colors"
+                type="button"
+                onClick={() => setShowDropdown(v => !v)}
+                aria-label="Account menu"
+                aria-haspopup="menu"
+                aria-expanded={showDropdown}
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-base font-semibold text-white active:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
               >
                 {getInitials(userName)}
               </button>
-              
-              {/* Dropdown Menu */}
+
               {showDropdown && (
-                <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                <div
+                  role="menu"
+                  className="absolute right-0 z-50 mt-2 w-56 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg"
+                >
+                  <p className="truncate border-b border-gray-100 px-4 py-3 text-base text-gray-600">
+                    {userName}
+                  </p>
                   <button
+                    type="button"
+                    role="menuitem"
                     onClick={handleLogout}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                    className="min-h-[48px] w-full px-4 text-left text-base font-medium text-red-700 active:bg-gray-100 focus-visible:bg-gray-100 focus-visible:outline-none"
                   >
                     Logout
                   </button>
                 </div>
               )}
             </div>
-          )}
-          
-          {/* Fallback logout button if no userName */}
-          {!userName && (
-            <Button onClick={handleLogout} variant="outline" size="sm">
+          ) : (
+            <button type="button" onClick={handleLogout} className={tapButton}>
               Logout
-            </Button>
+            </button>
           )}
         </div>
       </div>
-    </div>
+    </header>
   );
 }
