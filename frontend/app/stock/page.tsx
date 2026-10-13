@@ -15,6 +15,10 @@ import { Button } from '@/app/components/ui/button';
 import { authFetch } from '../utils/api';
 import { SignedNumberInput } from './SignedNumberInput';
 import { PageFooter } from '@/app/components/PageFooter';
+import { FloatingZoom } from '@/app/components/FloatingZoom';
+import { TableToolbar } from '@/app/components/TableToolbar';
+import { useToast } from '@/app/components/Toast';
+import { useUnsavedGuard } from '@/app/hooks/useUnsavedGuard';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -102,6 +106,10 @@ export default function Stock() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [dirty, setDirty] = useState(false);
+  const { toast, showToast } = useToast();
+
+  useUnsavedGuard(dirty, () => showToast('Please save the work'));
 
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -137,6 +145,7 @@ export default function Stock() {
       // New shape: { rates, rows }. An old backend returns a plain array.
       const list = Array.isArray(body) ? body : body?.rows;
       setRows(Array.isArray(list) ? list.map(normalizeRow) : []);
+      setDirty(false);
       const rates = Array.isArray(body) ? null : body?.rates;
       const source = rates?.source;
       setRatesInfo(
@@ -147,6 +156,7 @@ export default function Stock() {
     } catch (err) {
       console.error('Load error:', err);
       setRows([]);
+      setDirty(false);
       setRatesInfo(null);
       alert("Error loading data: " + (err instanceof Error ? err.message : String(err)));
     } finally {
@@ -159,6 +169,7 @@ export default function Stock() {
   }, [loadData]);
 
   const handleChange = useCallback((date: string, grade: '1-5' | '6-10', field: string, value: number) => {
+    setDirty(true);
     setRows(prev => prev.map(r => {
       if (r.date === date && r.grade === grade) {
         let v = Number.isFinite(value) ? value : 0;
@@ -220,7 +231,8 @@ export default function Stock() {
         throw new Error(responseData?.error || `Failed to save (${res.status})`);
       }
       
-      alert('Saved!');
+      setDirty(false);
+      showToast('Done');
       loadData(); // Reload to get updated calculations
     } catch (err) {
       console.error('Save error:', err);
@@ -323,13 +335,22 @@ export default function Stock() {
 
   const dates = Object.keys(groupedRows).sort();
 
+  // Month/year change is refused while there is unsaved work
+  const guardedSelect = (setter: (n: number) => void, value: string) => {
+    if (dirty) {
+      showToast('Please save the work');
+      return;
+    }
+    setter(Number(value));
+  };
+
   const handleExportPDF = () => {
     const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
     const fileName = `Stock_${monthName}_${year}.pdf`;
     exportToPDF(
       printRef,
       fileName,
-      () => alert('PDF exported successfully!'),
+      () => showToast('Done'),
       (error) => alert('Export failed: ' + error)
     );
   };
@@ -338,15 +359,8 @@ export default function Stock() {
     <div className="min-h-screen bg-gray-50 p-2">
       <div className="max-w-full mx-auto">
         <div className="bg-white rounded-lg shadow p-4 mb-4">
-          <Button 
-            onClick={() => router.push('/dashboard')} 
-            variant="outline" 
-            className="mb-4 w-full text-black"
-          >
-            ← Back to Dashboard
-          </Button>
           <div className="flex gap-2 mb-4">
-            <select value={month} onChange={e => setMonth(Number(e.target.value))} 
+            <select value={month} onChange={e => guardedSelect(setMonth, e.target.value)} 
               className="flex-1 p-2 border rounded text-sm text-black">
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i + 1} value={i + 1}>
@@ -354,7 +368,7 @@ export default function Stock() {
                 </option>
               ))}
             </select>
-            <select value={year} onChange={e => setYear(Number(e.target.value))} 
+            <select value={year} onChange={e => guardedSelect(setYear, e.target.value)} 
               className="p-2 border rounded text-sm text-black">
               {Array.from({ length: 5 }, (_, i) => (
                 <option key={i} value={new Date().getFullYear() - 2 + i}>
@@ -365,18 +379,11 @@ export default function Stock() {
           </div>
           <div className="flex gap-2">
             <Button onClick={saveData} disabled={saving || loading} className="flex-1">
-              {saving ? 'Saving...' : 'Save All'}
-            </Button>
-            <Button onClick={handleExportPDF} disabled={loading} className="flex-1">
-              Download PDF
+              {saving ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 mb-2">
-          <Button onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}>-</Button>
-          <Button onClick={() => setZoom(z => Math.min(2, z + 0.1))}>+</Button>
-        </div>
 
         {/* Outside printRef, so it is not part of the PDF */}
         {!loading && ratesInfo?.source === 'none' && (
@@ -410,7 +417,12 @@ export default function Stock() {
               <TableHeader>
                 <TableRow>
                   <TableCell colSpan={22} className="text-center text-lg font-semibold">
-                    {new Date(year, month - 1).toLocaleString('default', { month: 'long' })} {year} - Stock
+                    <div className="relative">
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2">
+                        <TableToolbar onDownload={handleExportPDF} downloadDisabled={loading} />
+                      </div>
+                      {new Date(year, month - 1).toLocaleString('default', { month: 'long' })} {year} - Stock
+                    </div>
                   </TableCell>
                 </TableRow>
                 <TableRow>
@@ -546,6 +558,8 @@ export default function Stock() {
           </div>
         )}
       </div>
+      {toast}
+      <FloatingZoom zoom={zoom} setZoom={setZoom} />
       <PageFooter />
     </div>
   );
