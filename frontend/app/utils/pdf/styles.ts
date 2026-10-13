@@ -3,20 +3,27 @@
  * Builds the stylesheet that is injected into the html2canvas CLONE of the page (never into the live page).
  * It reproduces the on-screen "Shared table style" from globals.css: black 1px grid, dark gray 3px
  * separators between the main column groups (.grp-l / .grp-r), .merge-r / .merge-l remove the line
- * between two neighbouring cells, centered titles, tight padding.
+ * between two neighbouring cells, centered titles. The table is shrunk to its content so it can be
+ * printed as large as possible: body cells never wrap, header cells wrap, and there is no outer box.
  */
 
 import { PDFStyleConfig } from './types';
 
 export const CONTAINER_CLASS = 'pdf-export-container';
 export const SECONDARY_TABLE_CLASS = 'pdf-secondary-table';
+/** Marks cells whose text contains Kannada, which is drawn a little larger than Latin text */
+export const KANNADA_CLASS = 'pdf-kn';
+/** Marks the cell of the table title row (month - table name) */
+export const TITLE_CLASS = 'pdf-title';
 const STYLE_ID = 'pdf-export-styles';
 
 const DEFAULT_CONFIG: PDFStyleConfig = {
   fontSize: {
     title: 15,
     header: 12,
+    headerKannada: 13,
     body: 11,
+    bodyKannada: 12,
   },
   colors: {
     border: '#000',
@@ -24,12 +31,9 @@ const DEFAULT_CONFIG: PDFStyleConfig = {
     headerBg: '#f5f5f5',
     text: '#000',
   },
-  spacing: {
-    cellPadding: '3px 4px',
-    tablePadding: '8px',
-  },
+  cellPadding: '1.4px',
+  lineHeight: 1.15,
   separatorWidth: 3,
-  minRenderWidth: 1200,
 };
 
 export class PDFStyleManager {
@@ -39,37 +43,38 @@ export class PDFStyleManager {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  /** Smallest render width in px */
-  get minRenderWidth(): number {
-    return this.config.minRenderWidth;
+  get bodyFontPx(): number {
+    return this.config.fontSize.body;
   }
 
   /** Add the stylesheet to a (cloned) document */
-  applyTo(doc: Document, minRenderWidth?: number): void {
+  applyTo(doc: Document): void {
     doc.getElementById(STYLE_ID)?.remove();
     const style = doc.createElement('style');
     style.id = STYLE_ID;
-    style.textContent = this.generateStyles(minRenderWidth ?? this.config.minRenderWidth);
+    style.textContent = this.generateStyles();
     doc.head.appendChild(style);
   }
 
-  private generateStyles(minWidth: number): string {
-    const { fontSize, colors, spacing, separatorWidth } = this.config;
+  private generateStyles(): string {
+    const { fontSize, colors, cellPadding, lineHeight, separatorWidth } = this.config;
     const C = `.${CONTAINER_CLASS}`;
 
     return `
+      /* As narrow as the content allows (min-content), with nothing around it: the page margin is added by the PDF */
       ${C} {
         display: block !important;
         position: static !important;
         float: none !important;
         transform: none !important;
         zoom: 1 !important;
-        width: max-content !important;
-        min-width: ${minWidth}px !important;
+        width: min-content !important;
         max-width: none !important;
         height: auto !important;
         margin: 0 !important;
-        padding: ${spacing.tablePadding} !important;
+        padding: 0 !important;
+        border: 0 !important;
+        border-radius: 0 !important;
         box-sizing: border-box !important;
         background: #fff !important;
         font-family: Arial, Helvetica, 'Noto Sans Kannada', 'Nirmala UI', Tunga, sans-serif;
@@ -94,69 +99,111 @@ export class PDFStyleManager {
       }
 
       [data-pdf-ignore],
-      ${C} [data-pdf-ignore] {
-        display: none !important;
-      }
-
+      ${C} [data-pdf-ignore],
       ${C} svg,
       ${C} .lucide {
         display: none !important;
       }
 
-      ${C} .border {
-        border-color: ${colors.border};
+      /* No box around the table or the title: only the table's own grid remains */
+      ${C} div,
+      ${C} h3 {
+        border: 0 !important;
+        border-radius: 0 !important;
+      }
+      ${C} .p-4 {
+        padding: 0 !important;
+      }
+      ${C} .mb-4 {
+        margin-bottom: 6px !important;
+      }
+      ${C} h3 {
+        margin: 0 0 3px !important;
+        font-size: ${fontSize.body + 1}px !important;
+        font-weight: 600 !important;
+        text-align: center !important;
       }
 
+      /* Tables are exactly as wide as their columns need */
       ${C} table {
-        width: 100% !important;
+        width: min-content !important;
         border-collapse: collapse !important;
         table-layout: auto !important;
         font-size: ${fontSize.body}px !important;
       }
 
-      /* Small side tables (egg summary) keep their own width, centered */
+      /* Small side tables (egg summary) use the full width of the main table instead of a narrow strip */
       ${C} table.${SECONDARY_TABLE_CLASS} {
-        width: auto !important;
-        margin: 0 auto !important;
+        width: 100% !important;
       }
 
+      /* Row and section borders (border-b on screen) would be drawn through rowSpan cells; the cell grid is enough */
       ${C} thead,
       ${C} tbody,
       ${C} tfoot,
       ${C} tr {
-        border-color: ${colors.border};
+        border: 0 !important;
       }
 
-      /* Grid: black everywhere */
+      /* Grid: black everywhere. Widths from the screen layout (min-w-[120px]) would waste space.
+         Padding is small and equal on every side so the text is as large as possible in its box. */
       ${C} th,
       ${C} td {
         border: 1px solid ${colors.border} !important;
-        padding: ${spacing.cellPadding} !important;
+        padding: ${cellPadding} !important;
         text-align: center !important;
         vertical-align: middle !important;
         font-size: ${fontSize.body}px !important;
-        line-height: 1.25 !important;
+        line-height: ${lineHeight} !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
       }
 
-      ${C} th {
+      /* Body cells never wrap, so a column is as wide as its widest value; only headers are bold */
+      ${C} td,
+      ${C} td * {
+        white-space: nowrap !important;
+        font-weight: normal !important;
+      }
+
+      /* Header cells wrap between words only: a column is never narrower than a word of its name */
+      ${C} thead th {
+        white-space: normal !important;
+        overflow-wrap: normal !important;
+        word-break: normal !important;
+        font-weight: bold !important;
+        font-size: ${fontSize.header}px !important;
+        background: ${colors.headerBg} !important;
+      }
+      ${C} tbody th,
+      ${C} tfoot th {
         font-weight: bold !important;
         font-size: ${fontSize.header}px !important;
       }
-
-      ${C} thead th,
       ${C} thead td {
         background: ${colors.headerBg} !important;
       }
 
-      ${C} tfoot td,
-      ${C} tfoot th {
-        font-weight: bold !important;
+      /* Kannada glyphs look smaller than Latin ones at the same size */
+      ${C} th.${KANNADA_CLASS} {
+        font-size: ${fontSize.headerKannada}px !important;
+      }
+      ${C} td.${KANNADA_CLASS} {
+        font-size: ${fontSize.bodyKannada}px !important;
       }
 
-      /* Table title row */
-      ${C} .text-lg {
+      /* Table title row: the only place with some air around the text. The screen layout gives its
+         wrappers fixed heights (for the toolbar), which are not needed here. */
+      ${C} td.${TITLE_CLASS},
+      ${C} td.${TITLE_CLASS} * {
         font-size: ${fontSize.title}px !important;
         font-weight: 600 !important;
+        height: auto !important;
+        min-height: 0 !important;
+      }
+      ${C} td.${TITLE_CLASS} {
+        padding: 4px !important;
       }
 
       /* Main column group separators. Higher specificity than the th/td border above. */
