@@ -136,3 +136,50 @@ export function InstallPrompt() {
     </div>
   );
 }
+
+type SectionMode = 'server' | 'installed' | 'prompt' | 'ios' | 'manual';
+
+// Never hidden and never dismissed (unlike InstallPrompt): always says how to install.
+function getSectionMode(): SectionMode {
+  if (isStandalone()) return 'installed';
+  if (installEvent) return 'prompt';
+  return isIosSafari() ? 'ios' : 'manual';
+}
+
+// Permanent "Install the app" block (used at the end of the Privacy page).
+export function InstallSection() {
+  const mode = useSyncExternalStore(subscribe, getSectionMode, (): SectionMode => 'server');
+
+  useEffect(() => {
+    watchInstallPrompt();
+  }, []);
+
+  return (
+    <section id="install">
+      <h2 className="text-2xl font-bold text-gray-800 mb-4">Install the app</h2>
+      {mode === 'installed' && (
+        <p className="text-lg text-gray-700">The app is already installed on this device.</p>
+      )}
+      {mode === 'prompt' && (
+        <button
+          type="button"
+          onClick={install}
+          className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-blue-600 px-4 text-base font-semibold text-white shadow-sm active:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 sm:w-auto"
+        >
+          Install app
+        </button>
+      )}
+      {mode === 'ios' && (
+        <p className="text-lg text-gray-700">
+          On iPhone or iPad: open this site in Safari, tap Share, then &quot;Add to Home Screen&quot;.
+        </p>
+      )}
+      {(mode === 'manual' || mode === 'server') && (
+        <p className="text-lg text-gray-700">
+          Open this site in Chrome on your phone, tap the menu (three dots) and choose &quot;Install app&quot; or
+          &quot;Add to Home screen&quot;.
+        </p>
+      )}
+    </section>
+  );
+}

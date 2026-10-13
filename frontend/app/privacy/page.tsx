@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from '@/app/components/ui/button';
+import { InstallSection } from '@/app/components/InstallPrompt';
 
 export default function PrivacyPolicyPage() {
   const router = useRouter();
@@ -92,6 +93,8 @@ export default function PrivacyPolicyPage() {
                 </a>.
               </p>
             </section>
+
+            <InstallSection />
           </div>
         </div>
       </main>
