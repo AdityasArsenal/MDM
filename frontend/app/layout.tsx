@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ServiceWorkerRegister } from "./components/ServiceWorkerRegister";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,12 +15,25 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "MDM Management System",
-  description: "MDM Calculator - Manage your devices and securely connect",
+  description: "Daily MDM registers for schools: meals, milk, eggs and stock.",
   icons: {
-    icon: '/logo.png',
-    shortcut: '/logo.png',
-    apple: '/logo.png',
+    icon: '/icons/favicon-48.png',
+    shortcut: '/icons/favicon-48.png',
+    apple: '/icons/apple-touch-icon.png',
   },
+  appleWebApp: {
+    capable: true,
+    title: "MDM",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  // Same green as theme_color in app/manifest.ts
+  themeColor: "#59916d",
 };
 
 export default function RootLayout({
@@ -33,6 +47,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { MonthYearPicker, MONTHS } from '@/app/components/MonthYearPicker';
 import { AppHeader } from '@/app/components/AppHeader';
+import { InstallPrompt } from '@/app/components/InstallPrompt';
 import { authFetch } from '@/app/utils/api';
 import { SheetCard, type SheetName } from './SheetCard';
 
@@ -73,6 +74,7 @@ export default function Dashboard() {
       />
 
       <main className="mx-auto w-full max-w-2xl px-4 pb-8 pt-2">
+        <InstallPrompt />
         <div className="rounded-xl bg-white p-4 shadow-lg sm:p-6">
           <h2 className="text-xl font-semibold text-gray-800">Choose a sheet</h2>
           <p className="mb-4 mt-1 text-base text-gray-600">Pick the month, then tap a sheet to open it.</p>
