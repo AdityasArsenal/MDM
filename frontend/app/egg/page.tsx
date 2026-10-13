@@ -397,29 +397,29 @@ export default function EggPage() {
             <TableHeader>
               <TableRow>
                 <TableHead></TableHead>
-                <TableHead className="text-center">ಮೊಟ್ಟೆ</TableHead>
-                <TableHead className="text-center">ಬಾಳೆ</TableHead>
-                <TableHead className="text-center">Total</TableHead>
+                <TableHead className="text-center grp-l grp-r">ಮೊಟ್ಟೆ</TableHead>
+                <TableHead className="text-center grp-l grp-r">ಬಾಳೆ</TableHead>
+                <TableHead className="text-center grp-l grp-r">Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow>
                 <TableCell className="font-bold">APF</TableCell>
-                <TableCell className="text-center">{summary.apfEgg}</TableCell>
-                <TableCell className="text-center">{summary.apfBanana}</TableCell>
-                <TableCell className="text-center font-bold">₹{summary.apfTotal}</TableCell>
+                <TableCell className="text-center grp-l grp-r">{summary.apfEgg}</TableCell>
+                <TableCell className="text-center grp-l grp-r">{summary.apfBanana}</TableCell>
+                <TableCell className="text-center font-bold grp-l grp-r">₹{summary.apfTotal}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-bold">GOV</TableCell>
-                <TableCell className="text-center">{summary.govEgg}</TableCell>
-                <TableCell className="text-center">{summary.govBanana}</TableCell>
-                <TableCell className="text-center font-bold">₹{summary.govTotal}</TableCell>
+                <TableCell className="text-center grp-l grp-r">{summary.govEgg}</TableCell>
+                <TableCell className="text-center grp-l grp-r">{summary.govBanana}</TableCell>
+                <TableCell className="text-center font-bold grp-l grp-r">₹{summary.govTotal}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-bold">Total</TableCell>
-                <TableCell className="text-center font-bold">{summary.totalEgg}</TableCell>
-                <TableCell className="text-center font-bold">{summary.totalBanana}</TableCell>
-                <TableCell className="text-center font-bold">₹{summary.grandTotal}</TableCell>
+                <TableCell className="text-center font-bold grp-l grp-r">{summary.totalEgg}</TableCell>
+                <TableCell className="text-center font-bold grp-l grp-r">{summary.totalBanana}</TableCell>
+                <TableCell className="text-center font-bold grp-l grp-r">₹{summary.grandTotal}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
@@ -439,28 +439,28 @@ export default function EggPage() {
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableHead className="text-xs">ದಿನಾಂಕ</TableHead>
-                  <TableHead className="text-xs">ಪಾವತಿಸುವವನು</TableHead>
-                  <TableHead colSpan={4} className="text-center text-xs">ಮೊಟ್ಟೆ</TableHead>
-                  <TableHead colSpan={4} className="text-center text-xs">ಬಾಳೆ</TableHead>
-                  <TableHead colSpan={3} className="text-center text-xs">ಒಟ್ಟು</TableHead>
-                  <TableHead className="text-xs">ಒಟ್ಟು ಹಣ</TableHead>
+                  <TableHead className="merge-r">ದಿನಾಂಕ</TableHead>
+                  <TableHead className="merge-l">ಪಾವತಿಸುವವನು</TableHead>
+                  <TableHead colSpan={4} className="text-center grp-l grp-r">ಮೊಟ್ಟೆ</TableHead>
+                  <TableHead colSpan={4} className="text-center grp-l grp-r">ಬಾಳೆ</TableHead>
+                  <TableHead colSpan={3} className="text-center grp-l grp-r">ಒಟ್ಟು</TableHead>
+                  <TableHead className="text-center grp-l grp-r">ಒಟ್ಟು ಹಣ</TableHead>
                 </TableRow>
                 <TableRow>
-                  <TableHead></TableHead>
-                  <TableHead></TableHead>
-                  <TableHead className="min-w-[120px] text-xs text-center">M</TableHead>
-                  <TableHead className="min-w-[120px] text-xs text-center">F</TableHead>
-                  <TableHead className="text-xs text-center">ಒಟ್ಟು</TableHead>
-                  <TableHead className="text-xs text-center">ಹಣ</TableHead>
-                  <TableHead className="min-w-[120px] text-xs text-center">M</TableHead>
-                  <TableHead className="min-w-[120px] text-xs text-center">F</TableHead>
-                  <TableHead className="text-xs text-center">ಒಟ್ಟು</TableHead>
-                  <TableHead className="text-xs text-center">ಹಣ</TableHead>
-                  <TableHead className="text-xs text-center">ಮೊಟ್ಟೆ</TableHead>
-                  <TableHead className="text-xs text-center">ಬಾಳೆ</TableHead>
-                  <TableHead className="text-xs text-center">ಒಟ್ಟು</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="merge-r"></TableHead>
+                  <TableHead className="merge-l"></TableHead>
+                  <TableHead className="min-w-[120px] text-center grp-l">M</TableHead>
+                  <TableHead className="min-w-[120px] text-center">F</TableHead>
+                  <TableHead className="text-center">ಒಟ್ಟು</TableHead>
+                  <TableHead className="text-center grp-r">ಹಣ</TableHead>
+                  <TableHead className="min-w-[120px] text-center grp-l">M</TableHead>
+                  <TableHead className="min-w-[120px] text-center">F</TableHead>
+                  <TableHead className="text-center">ಒಟ್ಟು</TableHead>
+                  <TableHead className="text-center grp-r">ಹಣ</TableHead>
+                  <TableHead className="text-center grp-l">ಮೊಟ್ಟೆ</TableHead>
+                  <TableHead className="text-center">ಬಾಳೆ</TableHead>
+                  <TableHead className="text-center grp-r">ಒಟ್ಟು</TableHead>
+                  <TableHead className="grp-l grp-r"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
