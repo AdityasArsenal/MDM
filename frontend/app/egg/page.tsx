@@ -438,16 +438,16 @@ export default function EggPage() {
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableHead className="merge-r">ದಿನಾಂಕ</TableHead>
-                  <TableHead className="merge-l">ಪಾವತಿಸುವವನು</TableHead>
+                  <TableHead>ದಿನಾಂಕ</TableHead>
+                  <TableHead>ಪಾವತಿಸುವವನು</TableHead>
                   <TableHead colSpan={4} className="text-center grp-l grp-r">ಮೊಟ್ಟೆ</TableHead>
                   <TableHead colSpan={4} className="text-center grp-l grp-r">ಬಾಳೆ</TableHead>
                   <TableHead colSpan={3} className="text-center grp-l grp-r">ಒಟ್ಟು</TableHead>
                   <TableHead className="text-center grp-l grp-r">ಒಟ್ಟು ಹಣ</TableHead>
                 </TableRow>
                 <TableRow>
-                  <TableHead className="merge-r"></TableHead>
-                  <TableHead className="merge-l"></TableHead>
+                  <TableHead></TableHead>
+                  <TableHead></TableHead>
                   <TableHead className="min-w-[120px] text-center grp-l">M</TableHead>
                   <TableHead className="min-w-[120px] text-center">F</TableHead>
                   <TableHead className="text-center">ಒಟ್ಟು</TableHead>

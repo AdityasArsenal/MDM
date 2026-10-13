@@ -30,8 +30,8 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, payerMissing, onC
 
   return (
     <TableRow>
-      <TableCell className="text-xs merge-r">{new Date(row.date).getDate()}</TableCell>
-      <TableCell className="merge-l">
+      <TableCell className="text-xs">{new Date(row.date).getDate()}</TableCell>
+      <TableCell>
         <div className={`flex flex-col gap-1 rounded ${payerMissing ? 'ring-2 ring-red-500 p-0.5' : ''}`}>
           <button
             onClick={() => onChange(index, 'payer', 'APF')}

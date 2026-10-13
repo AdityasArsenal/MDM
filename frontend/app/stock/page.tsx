@@ -426,8 +426,8 @@ export default function Stock() {
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableHead rowSpan={2} className="text-center merge-r">ದಿನಾಂಕ</TableHead>
-                  <TableHead rowSpan={2} className="text-center merge-l">ವಿಭಾಗ</TableHead>
+                  <TableHead rowSpan={2} className="text-center">ದಿನಾಂಕ</TableHead>
+                  <TableHead rowSpan={2} className="text-center">ವಿಭಾಗ</TableHead>
                   <TableHead colSpan={4} className="text-center grp-l grp-r">ಆರಂಭಿಕ ಶಿಲ್ಕು</TableHead>
                   <TableHead colSpan={4} className="text-center grp-l grp-r">ತಿಂಗಳ ಸ್ವೀಕೃತಿ</TableHead>
                   <TableHead colSpan={4} className="text-center grp-l grp-r">ಒಟ್ಟು</TableHead>
@@ -479,10 +479,10 @@ export default function Stock() {
                   return (
                     <React.Fragment key={date}>
                       <TableRow className={isSunday ? 'bg-red-50' : ''}>
-                        <TableCell rowSpan={2} className="font-medium merge-r">
+                        <TableCell rowSpan={2} className="font-medium">
                           {new Date(date).getDate()}
                         </TableCell>
-                        <TableCell className="merge-l">1-5</TableCell>
+                        <TableCell>1-5</TableCell>
                         {isFirstDay ? (
                           <>
                             <TableCell className="grp-l"><SignedNumberInput placeholder="0" value={row1to5.rice_open} onValueChange={v => handleChange(date, '1-5', 'rice_open', v)} className="w-20 text-xs p-1" /></TableCell>
@@ -516,7 +516,7 @@ export default function Stock() {
                         <TableCell className="grp-r">{fmt(closing1to5.pulse)}</TableCell>
                       </TableRow>
                       <TableRow className={isSunday ? 'bg-red-50' : ''}>
-                        <TableCell className="merge-l">6-10</TableCell>
+                        <TableCell>6-10</TableCell>
                         {isFirstDay ? (
                           <>
                             <TableCell className="grp-l"><SignedNumberInput placeholder="0" value={row6to10.rice_open} onValueChange={v => handleChange(date, '6-10', 'rice_open', v)} className="w-20 text-xs p-1" /></TableCell>

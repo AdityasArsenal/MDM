@@ -434,8 +434,8 @@ export default function Milk() {
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableHead rowSpan={2} className="merge-r text-center">ದಿನಾಂಕ</TableHead>
-                  <TableHead rowSpan={2} className="merge-l text-center">ಆಯ್ಕೆ</TableHead>
+                  <TableHead rowSpan={2} className="text-center">ದಿನಾಂಕ</TableHead>
+                  <TableHead rowSpan={2} className="text-center">ಆಯ್ಕೆ</TableHead>
                   <TableHead rowSpan={2} className="min-w-[120px] text-center">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
                   <TableHead colSpan={2} className="grp-l grp-r text-center">ಆರಂಭಿಕ ಶಿಲ್ಕು</TableHead>
                   <TableHead colSpan={2} className="grp-l grp-r text-center">ತಿಂಗಳ ಸ್ವೀಕೃತಿ</TableHead>

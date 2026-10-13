@@ -67,10 +67,10 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false, rates }: MilkTa
 
   return (
     <TableRow>
-      <TableCell className={`merge-r ${sunday ? 'text-red-600 font-semibold' : ''}`}>
+      <TableCell className={`${sunday ? 'text-red-600 font-semibold' : ''}`}>
         {new Date(row.date + 'T12:00:00').getDate()}
       </TableCell>
-      <TableCell className="merge-l">
+      <TableCell>
         <div className="flex flex-col gap-1">
           <button
             onClick={() => onHandleChange(row.id, 'dist_type', 'milk & ragi')}
