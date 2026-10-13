@@ -56,7 +56,7 @@ export function FloatingZoom({ zoom, setZoom }: FloatingZoomProps) {
     "absolute left-0 flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 shadow-md active:bg-gray-900 disabled:opacity-40";
 
   return (
-    <div ref={rootRef} className="fixed bottom-14 left-1.5 z-40 h-8 w-8" data-pdf-ignore>
+    <div ref={rootRef} className="fixed bottom-[46px] left-1.5 z-40 h-8 w-8" data-pdf-ignore>
       {open && (
         <button
           type="button"
