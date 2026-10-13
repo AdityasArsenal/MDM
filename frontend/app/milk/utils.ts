@@ -7,6 +7,8 @@ export interface MilkRow {
   milk_rcpt: number;
   ragi_rcpt: number;
   dist_type: 'milk & ragi' | 'only milk' | null; // null = not chosen yet
+  // True when children comes from the Meal page for this date (read-only here, never sent as a flag)
+  from_meal?: boolean;
 }
 
 // Per-child rates for one month. Units: milk in ml, ragi in grams, sugar in rupees.
