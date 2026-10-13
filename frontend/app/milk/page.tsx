@@ -58,6 +58,8 @@ export default function Milk() {
   // Latest rates for code that runs outside a render (the data loader)
   const ratesRef = useRef<MilkRates | null>(null);
   ratesRef.current = rates;
+  // Id of the latest data load, so a slow response for an earlier month is ignored
+  const loadReqRef = useRef(0);
 
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -77,6 +79,7 @@ export default function Milk() {
   const loadData = useCallback(async () => {
     if (!userId) return;
 
+    const reqId = ++loadReqRef.current;
     setLoading(true);
     try {
       const res = await authFetch(`${BACKEND_URL}/api/milk/${year}/${month}`, {
@@ -90,6 +93,33 @@ export default function Milk() {
       const body = await res.json().catch(() => null);
       const data: Partial<MilkRow>[] = Array.isArray(body) ? body : [];
 
+      // Children per date = the Meal page's two batches added together. Read only; if it
+      // cannot be loaded the stored, editable values are used instead.
+      const mealChildren = new Map<string, number>();
+      try {
+        const mealRes = await authFetch(`${BACKEND_URL}/api/meal/${year}/${month}`, {
+          headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
+        const mealBody = await mealRes.json().catch(() => null);
+        if (!mealRes.ok) {
+          throw new Error(mealBody?.error || `${mealRes.status} ${mealRes.statusText}`);
+        }
+        if (Array.isArray(mealBody)) {
+          for (const m of mealBody) {
+            if (typeof m?.date !== 'string') continue;
+            const count = (v: unknown) => Math.max(0, Math.trunc(Number(v) || 0));
+            mealChildren.set(m.date.slice(0, 10), count(m.cnt_1to5) + count(m.cnt_6to10));
+          }
+        }
+      } catch (mealErr) {
+        if (reqId === loadReqRef.current) {
+          alert('Could not load Meal counts: ' + (mealErr instanceof Error ? mealErr.message : String(mealErr)));
+        }
+        mealChildren.clear();
+      }
+      // A newer load (month change) started while waiting: drop this result
+      if (reqId !== loadReqRef.current) return;
+
       const daysInMonth = new Date(year, month, 0).getDate();
       const allDays: MilkRow[] = [];
 
@@ -97,10 +127,15 @@ export default function Milk() {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const existing = data.find((m: Partial<MilkRow>) => typeof m?.date === 'string' && m.date.startsWith(dateStr));
 
+        const fromMeal = mealChildren.has(dateStr);
+
         allDays.push(existing ? {
           id: day,
           date: dateStr,
-          children: Math.max(0, Math.trunc(Number(existing.children) || 0)),
+          children: fromMeal
+            ? (mealChildren.get(dateStr) as number)
+            : Math.max(0, Math.trunc(Number(existing.children) || 0)),
+          from_meal: fromMeal,
           milk_open: Number(existing.milk_open) || 0,
           ragi_open: Number(existing.ragi_open) || 0,
           milk_rcpt: Number(existing.milk_rcpt) || 0,
@@ -109,7 +144,8 @@ export default function Milk() {
         } : {
           id: day,
           date: dateStr,
-          children: 0,
+          children: fromMeal ? (mealChildren.get(dateStr) as number) : 0,
+          from_meal: fromMeal,
           milk_open: 0,
           ragi_open: 0,
           milk_rcpt: 0,
@@ -118,15 +154,16 @@ export default function Milk() {
         });
       }
 
-      // Derive days 2.. from day 1 with the current rates (day 1 stays as stored).
-      // If the rates are not loaded yet, the effect below redoes this when they arrive.
+      // Derive days 2.. from day 1 with the current rates and the Meal-derived children
+      // (day 1 stays as stored). Rows are only set after the Meal counts are in. If the
+      // rates are not loaded yet, the effect below redoes this when they arrive.
       setRows(ratesRef.current ? recalculateOpeningStock(allDays, ratesRef.current, 1) : allDays);
       setRowsVersion(v => v + 1);
     } catch (err) {
       console.error('Load error:', err);
       alert('Error loading data: ' + (err as Error).message);
     } finally {
-      setLoading(false);
+      if (reqId === loadReqRef.current) setLoading(false);
     }
   }, [userId, year, month]);
 
@@ -202,6 +239,8 @@ export default function Milk() {
     setRows(prev => {
       const idx = prev.findIndex(r => r.id === id);
       if (idx === -1) return prev;
+      // Children taken from the Meal page cannot be edited here
+      if (field === 'children' && prev[idx].from_meal) return prev;
 
       // Typed fields never become NaN or negative. Opening stock may legitimately be negative.
       let newValue = value;
@@ -384,31 +423,27 @@ export default function Milk() {
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableHead className="text-center">ದಿನಾಂಕ</TableHead>
-                  <TableHead className="text-center">ಆಯ್ಕೆ</TableHead>
-                  <TableHead className="min-w-[120px] text-center">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
-                  <TableHead colSpan={2} className="text-center">ಆರಂಭಿಕ ಶಿಲ್ಕು</TableHead>
-                  <TableHead colSpan={2} className="text-center">ತಿಂಗಳ ಸ್ವೀಕೃತಿ</TableHead>
-                  <TableHead colSpan={2} className="text-center">ಒಟ್ಟು</TableHead>
-                  <TableHead colSpan={2} className="text-center">ದಿನದ ವಿತರಣೆ</TableHead>
-                  <TableHead colSpan={2} className="text-center">ಅಂತಿಮ ಶಿಲ್ಕು</TableHead>
-                  <TableHead className="text-center">ಸಕ್ಕರೆ</TableHead>
+                  <TableHead rowSpan={2} className="merge-r text-center">ದಿನಾಂಕ</TableHead>
+                  <TableHead rowSpan={2} className="merge-l text-center">ಆಯ್ಕೆ</TableHead>
+                  <TableHead rowSpan={2} className="min-w-[120px] text-center">ಮಕ್ಕಳ ಸಂಖ್ಯೆ</TableHead>
+                  <TableHead colSpan={2} className="grp-l grp-r text-center">ಆರಂಭಿಕ ಶಿಲ್ಕು</TableHead>
+                  <TableHead colSpan={2} className="grp-l grp-r text-center">ತಿಂಗಳ ಸ್ವೀಕೃತಿ</TableHead>
+                  <TableHead colSpan={2} className="grp-l grp-r text-center">ಒಟ್ಟು</TableHead>
+                  <TableHead colSpan={2} className="grp-l grp-r text-center">ದಿನದ ವಿತರಣೆ</TableHead>
+                  <TableHead colSpan={2} className="grp-l grp-r text-center">ಅಂತಿಮ ಶಿಲ್ಕು</TableHead>
+                  <TableHead rowSpan={2} className="text-center">ಸಕ್ಕರೆ</TableHead>
                 </TableRow>
                 <TableRow>
-                  <TableHead></TableHead>
-                  <TableHead></TableHead>
-                  <TableHead></TableHead>
-                  <TableHead className="min-w-[120px] text-center">ಹಾಲು (L)</TableHead>
-                  <TableHead className="min-w-[120px] text-center">ರಾಗಿ (kg)</TableHead>
-                  <TableHead className="min-w-[120px] text-center">ಹಾಲು (L)</TableHead>
-                  <TableHead className="min-w-[120px] text-center">ರಾಗಿ (kg)</TableHead>
-                  <TableHead>ಹಾಲು (L)</TableHead>
-                  <TableHead>ರಾಗಿ (kg)</TableHead>
-                  <TableHead>ಹಾಲು (L)</TableHead>
-                  <TableHead>ರಾಗಿ (kg)</TableHead>
-                  <TableHead>ಹಾಲು (L)</TableHead>
-                  <TableHead>ರಾಗಿ (kg)</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="grp-l min-w-[120px] text-center">ಹಾಲು (L)</TableHead>
+                  <TableHead className="grp-r min-w-[120px] text-center">ರಾಗಿ (kg)</TableHead>
+                  <TableHead className="grp-l min-w-[120px] text-center">ಹಾಲು (L)</TableHead>
+                  <TableHead className="grp-r min-w-[120px] text-center">ರಾಗಿ (kg)</TableHead>
+                  <TableHead className="grp-l text-center">ಹಾಲು (L)</TableHead>
+                  <TableHead className="grp-r text-center">ರಾಗಿ (kg)</TableHead>
+                  <TableHead className="grp-l text-center">ಹಾಲು (L)</TableHead>
+                  <TableHead className="grp-r text-center">ರಾಗಿ (kg)</TableHead>
+                  <TableHead className="grp-l text-center">ಹಾಲು (L)</TableHead>
+                  <TableHead className="grp-r text-center">ರಾಗಿ (kg)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -426,13 +461,13 @@ export default function Milk() {
                 <TableRow>
                   <TableCell colSpan={2} className="font-bold">Total</TableCell>
                   <TableCell className="font-bold">{totals.children}</TableCell>
-                  <TableCell colSpan={2}></TableCell>
-                  <TableCell className="font-bold">{totals.milk_rcpt.toFixed(3)}</TableCell>
-                  <TableCell className="font-bold">{totals.ragi_rcpt.toFixed(3)}</TableCell>
-                  <TableCell colSpan={2}></TableCell>
-                  <TableCell className="font-bold">{totals.milk_dist.toFixed(3)}</TableCell>
-                  <TableCell className="font-bold">{totals.ragi_dist.toFixed(3)}</TableCell>
-                  <TableCell colSpan={2}></TableCell>
+                  <TableCell colSpan={2} className="grp-l grp-r"></TableCell>
+                  <TableCell className="grp-l font-bold">{totals.milk_rcpt.toFixed(3)}</TableCell>
+                  <TableCell className="grp-r font-bold">{totals.ragi_rcpt.toFixed(3)}</TableCell>
+                  <TableCell colSpan={2} className="grp-l grp-r"></TableCell>
+                  <TableCell className="grp-l font-bold">{totals.milk_dist.toFixed(3)}</TableCell>
+                  <TableCell className="grp-r font-bold">{totals.ragi_dist.toFixed(3)}</TableCell>
+                  <TableCell colSpan={2} className="grp-l grp-r"></TableCell>
                   <TableCell className="font-bold">{totals.sugar.toFixed(2)}</TableCell>
                 </TableRow>
               </TableFooter>

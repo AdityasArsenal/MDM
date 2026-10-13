@@ -4,7 +4,6 @@ import { Input } from '@/app/components/ui/input';
 import {
   MilkRow,
   MilkRates,
-  getDayName,
   isSunday,
   calculateTotalMilk,
   calculateTotalRagi,
@@ -63,20 +62,19 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false, rates }: MilkTa
   const closeRagi = useMemo(() => calculateClosingRagi(totalRagi, distRagi), [totalRagi, distRagi]);
   const sugar = useMemo(() => calculateSugar(row.children || 0, rates), [row.children, rates]);
   const sunday = useMemo(() => isSunday(row.date), [row.date]);
-  const dayName = useMemo(() => getDayName(row.date), [row.date]);
   const missingDist = row.children > 0 && !row.dist_type;
   const missingRing = missingDist ? ' ring-2 ring-red-500' : '';
 
   return (
     <TableRow>
-      <TableCell className={sunday ? 'text-red-600 font-semibold' : ''}>
+      <TableCell className={`merge-r ${sunday ? 'text-red-600 font-semibold' : ''}`}>
         {new Date(row.date + 'T12:00:00').getDate()}
       </TableCell>
-      <TableCell>
+      <TableCell className="merge-l">
         <div className="flex flex-col gap-1">
           <button
             onClick={() => onHandleChange(row.id, 'dist_type', 'milk & ragi')}
-            className={`px-2 py-1 text-xs rounded ${
+            className={`px-1 py-0.5 leading-tight rounded ${
               row.dist_type === 'milk & ragi'
                 ? 'bg-blue-500 text-white font-semibold'
                 : 'bg-gray-200 text-black'
@@ -85,7 +83,7 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false, rates }: MilkTa
           </button>
           <button
             onClick={() => onHandleChange(row.id, 'dist_type', 'only milk')}
-            className={`px-2 py-1 text-xs rounded ${
+            className={`px-1 py-0.5 leading-tight rounded ${
               row.dist_type === 'only milk'
                 ? 'bg-orange-500 text-white font-semibold'
                 : 'bg-gray-200 text-black'
@@ -95,31 +93,43 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false, rates }: MilkTa
         </div>
       </TableCell>
       <TableCell>
-        <Input
-          type="number"
-          value={row.children || ''}
-          placeholder="0"
-          onChange={e => onHandleChange(row.id, 'children', e.target.valueAsNumber || 0)}
-          step="1"
-          min="0"
-          className="w-20"
-        />
+        {row.from_meal ? (
+          // Sum of the Meal page's two batches for this date; read-only here
+          <Input
+            type="number"
+            value={row.children}
+            readOnly
+            disabled
+            title="From the Meal page"
+            className="w-20 bg-gray-100"
+          />
+        ) : (
+          <Input
+            type="number"
+            value={row.children || ''}
+            placeholder="0"
+            onChange={e => onHandleChange(row.id, 'children', e.target.valueAsNumber || 0)}
+            step="1"
+            min="0"
+            className="w-20"
+          />
+        )}
       </TableCell>
-      <TableCell>
+      <TableCell className="grp-l">
         {isFirstDay ? (
           <DraftNumberInput value={row.milk_open} onCommit={n => onHandleChange(row.id, 'milk_open', n)} />
         ) : (
           fmt((row.milk_open || 0))
         )}
       </TableCell>
-      <TableCell>
+      <TableCell className="grp-r">
         {isFirstDay ? (
           <DraftNumberInput value={row.ragi_open} onCommit={n => onHandleChange(row.id, 'ragi_open', n)} />
         ) : (
           fmt((row.ragi_open || 0))
         )}
       </TableCell>
-      <TableCell>
+      <TableCell className="grp-l">
         <Input
           type="number"
           value={row.milk_rcpt || ''}
@@ -128,7 +138,7 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false, rates }: MilkTa
           className="w-20"
         />
       </TableCell>
-      <TableCell>
+      <TableCell className="grp-r">
         <Input
           type="number"
           value={row.ragi_rcpt || ''}
@@ -137,12 +147,12 @@ const MilkTableRow = ({ row, onHandleChange, isFirstDay = false, rates }: MilkTa
           className="w-20"
         />
       </TableCell>
-      <TableCell>{fmt(totalMilk)}</TableCell>
-      <TableCell>{fmt(totalRagi)}</TableCell>
-      <TableCell>{distMilk.toFixed(3)}</TableCell>
-      <TableCell>{distRagi.toFixed(3)}</TableCell>
-      <TableCell>{fmt(closeMilk)}</TableCell>
-      <TableCell>{fmt(closeRagi)}</TableCell>
+      <TableCell className="grp-l">{fmt(totalMilk)}</TableCell>
+      <TableCell className="grp-r">{fmt(totalRagi)}</TableCell>
+      <TableCell className="grp-l">{distMilk.toFixed(3)}</TableCell>
+      <TableCell className="grp-r">{distRagi.toFixed(3)}</TableCell>
+      <TableCell className="grp-l">{fmt(closeMilk)}</TableCell>
+      <TableCell className="grp-r">{fmt(closeRagi)}</TableCell>
       <TableCell>{sugar.toFixed(2)}</TableCell>
     </TableRow>
   );
