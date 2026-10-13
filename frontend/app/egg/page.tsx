@@ -16,7 +16,10 @@ import { Input } from '@/app/components/ui/input';
 import { Button } from '@/app/components/ui/button';
 import { PageFooter } from '@/app/components/PageFooter';
 import EggTableRow from './EggTableRow';
-import { RatesToast } from './RatesToast';
+import { FloatingZoom } from '@/app/components/FloatingZoom';
+import { TableToolbar } from '@/app/components/TableToolbar';
+import { useToast } from '@/app/components/Toast';
+import { useUnsavedGuard } from '@/app/hooks/useUnsavedGuard';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -63,7 +66,9 @@ export default function EggPage() {
   const [ratesSource, setRatesSource] = useState<RatesResponse['source'] | null>(null);
   // Prices the backend has saved for the selected month (null if not saved for this month)
   const [savedRates, setSavedRates] = useState<{ egg_price: number; banana_price: number } | null>(null);
-  const [toast, setToast] = useState<{ text: string; key: number } | null>(null);
+  const { toast, showToast } = useToast();
+  // True while the user has changed rows or prices that are not saved yet
+  const [dirty, setDirty] = useState(false);
   const ratesReq = useRef(0);
   const eggPrice = parsePrice(eggPriceText) ?? 0;
   const bananaPrice = parsePrice(bananaPriceText) ?? 0;
@@ -126,6 +131,7 @@ export default function EggPage() {
       }
       
       setRows(allDays);
+      setDirty(false);
     } catch (err) {
       alert('Error: ' + (err as Error).message);
     } finally {
@@ -141,7 +147,6 @@ export default function EggPage() {
     if (!userId) return;
     const req = ++ratesReq.current;
     // Reset first so nothing stale shows for the new month
-    setToast(null);
     setEggPriceText('');
     setBananaPriceText('');
     setRatesSource(null);
@@ -160,28 +165,26 @@ export default function EggPage() {
       }
       if (data.source === 'saved') {
         setSavedRates(data.rates);
-        setToast({ text: `Rates for ${monthYearLabel(year, month)} are saved.`, key: Date.now() });
+        showToast(`Rates for ${monthYearLabel(year, month)} are saved.`);
       } else if (data.source === 'inherited' && data.inherited_from) {
-        setToast({
-          text: `Rates for ${monthYearLabel(year, month)} are not saved yet. Showing ${monthYearLabel(data.inherited_from.year, data.inherited_from.month)}'s rates. You can configure rates for this month by editing the prices.`,
-          key: Date.now(),
-        });
+        showToast(`Rates for ${monthYearLabel(year, month)} are not saved yet. Showing ${monthYearLabel(data.inherited_from.year, data.inherited_from.month)}'s rates. You can configure rates for this month by editing the prices.`);
       }
     } catch (err) {
       if (req !== ratesReq.current) return;
       alert('Error: ' + (err as Error).message);
     }
-  }, [userId, year, month]);
+  }, [userId, year, month, showToast]);
 
   useEffect(() => {
     loadRates();
   }, [loadRates]);
 
-  const clearToast = useCallback(() => setToast(null), []);
+  useUnsavedGuard(dirty, () => showToast('Please save the work'));
 
   const [missingDates, setMissingDates] = useState<string[]>([]);
 
   const handleChange = useCallback((idx: number, field: keyof EggRecord, value: EggRecord[keyof EggRecord]) => {
+    setDirty(true);
     setRows(prev =>
       prev.map((row, i) =>
         i === idx
@@ -273,8 +276,8 @@ export default function EggPage() {
         throw new Error(responseData.error || 'Failed to save');
       }
       
-      alert('Saved!');
-      await loadData(); // Reload to get fresh data
+      showToast('Done');
+      await loadData(); // Reload to get fresh data (also clears dirty)
     } catch (err) {
       console.error('Save error:', err);
       alert('Error: ' + (err as Error).message);
@@ -307,31 +310,34 @@ export default function EggPage() {
 
   const summary = calcSummary;
 
+  // Month/year can only change when there is no unsaved work
+  const guardedSelect = (change: () => void) => {
+    if (dirty) {
+      showToast('Please save the work');
+      return;
+    }
+    change();
+  };
+
   const handleExportPDF = () => {
     const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
     const fileName = `Egg_Banana_${monthName}_${year}.pdf`;
     exportToPDF(
       printRef,
       fileName,
-      () => alert('PDF exported successfully!'),
+      () => showToast('Done'),
       (error) => alert('Export failed: ' + error)
     );
   };
 
   return (
     <div className="min-h-screen bg-gray-50 p-2">
-      {toast && <RatesToast key={toast.key} text={toast.text} onDone={clearToast} />}
+      {toast}
+      <FloatingZoom zoom={zoom} setZoom={setZoom} />
       <div className="max-w-full mx-auto">
         <div className="bg-white rounded-lg shadow p-4 mb-4">
-          <Button 
-            onClick={() => router.push('/dashboard')} 
-            variant="outline" 
-            className="mb-4 w-full text-black"
-          >
-            ← Back to Dashboard
-          </Button>
           <div className="flex gap-2 mb-4">
-            <select value={month} onChange={e => setMonth(Number(e.target.value))} 
+            <select value={month} onChange={e => guardedSelect(() => setMonth(Number(e.target.value)))} 
               className="flex-1 p-2 border rounded text-sm text-black">
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i + 1} value={i + 1}>
@@ -339,7 +345,7 @@ export default function EggPage() {
                 </option>
               ))}
             </select>
-            <select value={year} onChange={e => setYear(Number(e.target.value))} 
+            <select value={year} onChange={e => guardedSelect(() => setYear(Number(e.target.value)))} 
               className="p-2 border rounded text-sm text-black">
               {Array.from({ length: 5 }, (_, i) => (
                 <option key={i} value={new Date().getFullYear() - 2 + i}>
@@ -353,13 +359,13 @@ export default function EggPage() {
             <div className="flex-1">
               <label className="text-xs">ಮೊಟ್ಟೆ ಬೆಲೆ</label>
               <Input type="number" min={0} value={eggPriceText} placeholder="0"
-                onChange={e => setEggPriceText(e.target.value)} 
+                onChange={e => { setDirty(true); setEggPriceText(e.target.value); }} 
                 className={`w-full ${locked ? 'ring-2 ring-orange-500' : ''}`} />
             </div>
             <div className="flex-1">
               <label className="text-xs">ಬಾಳೆ ಬೆಲೆ</label>
               <Input type="number" min={0} value={bananaPriceText} placeholder="0"
-                onChange={e => setBananaPriceText(e.target.value)} 
+                onChange={e => { setDirty(true); setBananaPriceText(e.target.value); }} 
                 className={`w-full ${locked ? 'ring-2 ring-orange-500' : ''}`} />
             </div>
           </div>
@@ -370,19 +376,9 @@ export default function EggPage() {
             </p>
           )}
 
-          <div className="flex gap-2">
-            <Button onClick={saveData} disabled={saving || loading || locked} className="flex-1">
-              {saving ? 'Saving...' : 'Save All'}
-            </Button>
-            <Button onClick={handleExportPDF} disabled={loading || locked} className="flex-1">
-              Download PDF
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2 mb-2">
-          <Button onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}>-</Button>
-          <Button onClick={() => setZoom(z => Math.min(2, z + 0.1))}>+</Button>
+          <Button onClick={saveData} disabled={saving || loading || locked} className="w-full">
+            {saving ? 'Saving...' : 'Save'}
+          </Button>
         </div>
 
         <div className="overflow-auto">
@@ -434,7 +430,10 @@ export default function EggPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={14} className="text-center font-semibold">
+                  <TableCell colSpan={14} className="relative text-center font-semibold">
+                    <div className="absolute left-1 top-1/2 -translate-y-1/2">
+                      <TableToolbar onDownload={handleExportPDF} downloadDisabled={loading || locked} />
+                    </div>
                     {new Date(year, month - 1).toLocaleString('default', { month: 'long' })} {year} - ಮೊಟ್ಟೆ ಮತ್ತು ಬಾಳೆಹಣ್ಣು
                   </TableCell>
                 </TableRow>
