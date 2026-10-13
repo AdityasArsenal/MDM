@@ -56,7 +56,7 @@ export function AppHeader({ showBackButton = true, userName }: AppHeaderProps) {
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-2 sm:px-4">
         <div className="flex min-w-0 items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="" width={40} height={40} className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
+          <img src="/icons/logo-96.png" alt="" width={40} height={40} className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
           <div className="min-w-0">
             <h1 className="truncate text-lg font-bold leading-tight text-gray-800 sm:text-2xl">
               MDM Calculator
