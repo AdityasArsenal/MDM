@@ -46,3 +46,31 @@ button.bg-green-500,
 button.bg-red-500 {
   color: #ffffff !important;
 }
+
+/* ---------- Shared table style (all data tables: Meal, Milk, Egg, Stock) ----------
+   Every grid line is black. The MAIN columns (groups of sub columns) are separated by a
+   dark gray line: put .grp-l on the first column of a group and .grp-r on the last column
+   of a group, on the header AND body AND footer cells. Date and class/payer columns that
+   must have no line between them use .merge-r on the left cell and .merge-l on the right cell.
+   Kannada text is a little larger than Latin text, so header cells use a larger size and
+   tight padding (the cells keep their size). */
+.mdm-table {
+  border-collapse: collapse;
+}
+.mdm-table th,
+.mdm-table td {
+  border: 1px solid #000;
+}
+.mdm-table th {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+.mdm-table td {
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+.mdm-table .grp-l { border-left: 3px solid #6b7280; }
+.mdm-table .grp-r { border-right: 3px solid #6b7280; }
+.mdm-table .merge-r { border-right-style: none; }
+.mdm-table .merge-l { border-left-style: none; }
+.mdm-table th.kn-center { text-align: center; }
