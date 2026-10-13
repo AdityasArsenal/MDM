@@ -37,11 +37,12 @@ export async function exportToPDF(
   
   const exportOptions: PDFExportOptions = {
     fileName,
-    orientation: options.orientation || 'portrait',
+    orientation: options.orientation || 'landscape',
     format: options.format || 'a4',
     scale: options.scale || 2,
     quality: options.quality || 1.0,
-    margin: options.margin || 10,
+    margin: options.margin ?? 8,
+    minRenderWidth: options.minRenderWidth,
   };
 
   const callbacks: PDFExportCallbacks = {

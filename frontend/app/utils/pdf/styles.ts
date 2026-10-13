@@ -1,146 +1,178 @@
 /**
- * PDF Styles Manager
- * Handles dynamic style injection and cleanup
+ * PDF Styles
+ * Builds the stylesheet that is injected into the html2canvas CLONE of the page (never into the live page).
+ * It reproduces the on-screen "Shared table style" from globals.css: black 1px grid, dark gray 3px
+ * separators between the main column groups (.grp-l / .grp-r), .merge-r / .merge-l remove the line
+ * between two neighbouring cells, centered titles, tight padding.
  */
 
 import { PDFStyleConfig } from './types';
 
+export const CONTAINER_CLASS = 'pdf-export-container';
+export const SECONDARY_TABLE_CLASS = 'pdf-secondary-table';
 const STYLE_ID = 'pdf-export-styles';
 
 const DEFAULT_CONFIG: PDFStyleConfig = {
   fontSize: {
+    title: 15,
     header: 12,
     body: 11,
-    small: 9,
   },
   colors: {
-    border: '#333',
+    border: '#000',
+    separator: '#6b7280',
     headerBg: '#f5f5f5',
     text: '#000',
   },
   spacing: {
-    cellPadding: '4px 2px',
-    tablePadding: '15px',
+    cellPadding: '3px 4px',
+    tablePadding: '8px',
   },
+  separatorWidth: 3,
+  minRenderWidth: 1200,
 };
 
 export class PDFStyleManager {
-  private styleElement: HTMLStyleElement | null = null;
   private config: PDFStyleConfig;
 
   constructor(config?: Partial<PDFStyleConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  inject(): void {
-    this.remove(); // Clean up any existing styles
-
-    this.styleElement = document.createElement('style');
-    this.styleElement.id = STYLE_ID;
-    this.styleElement.textContent = this.generateStyles();
-    document.head.appendChild(this.styleElement);
+  /** Smallest render width in px */
+  get minRenderWidth(): number {
+    return this.config.minRenderWidth;
   }
 
-  remove(): void {
-    const existing = document.getElementById(STYLE_ID);
-    if (existing) {
-      existing.remove();
-    }
-    this.styleElement = null;
+  /** Add the stylesheet to a (cloned) document */
+  applyTo(doc: Document, minRenderWidth?: number): void {
+    doc.getElementById(STYLE_ID)?.remove();
+    const style = doc.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = this.generateStyles(minRenderWidth ?? this.config.minRenderWidth);
+    doc.head.appendChild(style);
   }
 
-  private generateStyles(): string {
-    const { fontSize, colors, spacing } = this.config;
+  private generateStyles(minWidth: number): string {
+    const { fontSize, colors, spacing, separatorWidth } = this.config;
+    const C = `.${CONTAINER_CLASS}`;
 
     return `
-      .pdf-export-container {
-        background: white !important;
-        color: ${colors.text} !important;
-        font-family: 'Arial', sans-serif !important;
+      ${C} {
+        display: block !important;
+        position: static !important;
+        float: none !important;
+        transform: none !important;
+        zoom: 1 !important;
+        width: max-content !important;
+        min-width: ${minWidth}px !important;
+        max-width: none !important;
+        height: auto !important;
+        margin: 0 !important;
         padding: ${spacing.tablePadding} !important;
         box-sizing: border-box !important;
-        width: 794px !important;
-        max-width: none !important;
+        background: #fff !important;
+        font-family: Arial, Helvetica, 'Noto Sans Kannada', 'Nirmala UI', Tunga, sans-serif;
       }
-      
-      .pdf-export-container * {
-        background: white !important;
-        color: ${colors.text} !important;
-        border-color: ${colors.border} !important;
+
+      /* No scroll containers: every row must be laid out and painted */
+      ${C}, ${C} * {
+        overflow: visible !important;
+        max-height: none !important;
         box-shadow: none !important;
+        text-shadow: none !important;
       }
-      
-      .pdf-export-container table {
+
+      ${C} * {
+        color: ${colors.text} !important;
+        background: transparent !important;
+      }
+
+      /* Sunday dates stay red as on screen */
+      ${C} .text-red-600 {
+        color: #dc2626 !important;
+      }
+
+      [data-pdf-ignore],
+      ${C} [data-pdf-ignore] {
+        display: none !important;
+      }
+
+      ${C} svg,
+      ${C} .lucide {
+        display: none !important;
+      }
+
+      ${C} .border {
+        border-color: ${colors.border};
+      }
+
+      ${C} table {
         width: 100% !important;
         border-collapse: collapse !important;
+        table-layout: auto !important;
         font-size: ${fontSize.body}px !important;
-        line-height: 1.4 !important;
-        table-layout: fixed !important;
       }
-      
-      .pdf-export-container th,
-      .pdf-export-container td {
-        padding: ${spacing.cellPadding} !important;
+
+      /* Small side tables (egg summary) keep their own width, centered */
+      ${C} table.${SECONDARY_TABLE_CLASS} {
+        width: auto !important;
+        margin: 0 auto !important;
+      }
+
+      ${C} thead,
+      ${C} tbody,
+      ${C} tfoot,
+      ${C} tr {
+        border-color: ${colors.border};
+      }
+
+      /* Grid: black everywhere */
+      ${C} th,
+      ${C} td {
         border: 1px solid ${colors.border} !important;
+        padding: ${spacing.cellPadding} !important;
         text-align: center !important;
-        word-wrap: break-word !important;
-        font-size: ${fontSize.body}px !important;
         vertical-align: middle !important;
+        font-size: ${fontSize.body}px !important;
+        line-height: 1.25 !important;
       }
-      
-      .pdf-export-container th {
-        background: ${colors.headerBg} !important;
+
+      ${C} th {
         font-weight: bold !important;
         font-size: ${fontSize.header}px !important;
       }
 
-      .pdf-export-container thead th,
-      .pdf-export-container thead td {
+      ${C} thead th,
+      ${C} thead td {
         background: ${colors.headerBg} !important;
       }
 
-      .pdf-export-container input {
-        font-size: ${fontSize.body}px !important;
-        border: none !important;
-        text-align: center !important;
-        background: transparent !important;
-        width: 100% !important;
-      }
-      
-      .pdf-export-container button {
-        font-size: ${fontSize.small}px !important;
-        padding: 2px 4px !important;
+      ${C} tfoot td,
+      ${C} tfoot th {
+        font-weight: bold !important;
       }
 
-      .pdf-export-container .lucide,
-      .pdf-export-container svg {
-        display: none !important;
+      /* Table title row */
+      ${C} .text-lg {
+        font-size: ${fontSize.title}px !important;
+        font-weight: 600 !important;
       }
-      
-      .pdf-export-container .table,
-      .pdf-export-container .table-header,
-      .pdf-export-container .table-body,
-      .pdf-export-container .table-row,
-      .pdf-export-container .table-head,
-      .pdf-export-container .table-cell,
-      .pdf-export-container .table-footer {
-        display: table !important;
-        width: 100% !important;
+
+      /* Main column group separators. Higher specificity than the th/td border above. */
+      ${C} .grp-l {
+        border-left: ${separatorWidth}px solid ${colors.separator} !important;
       }
-      
-      .pdf-export-container .table-header,
-      .pdf-export-container .table-body,
-      .pdf-export-container .table-footer {
-        display: table-row-group !important;
+      ${C} .grp-r {
+        border-right: ${separatorWidth}px solid ${colors.separator} !important;
       }
-      
-      .pdf-export-container .table-row {
-        display: table-row !important;
+
+      /* No line between two neighbouring cells (date/class, date/payer) */
+      ${C} .merge-r {
+        border-right-style: none !important;
       }
-      
-      .pdf-export-container .table-head,
-      .pdf-export-container .table-cell {
-        display: table-cell !important;
+      ${C} .merge-l {
+        border-left-style: none !important;
       }
     `;
   }
