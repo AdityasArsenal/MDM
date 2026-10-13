@@ -38,10 +38,12 @@ export interface PDFStyleConfig {
     /** Dark gray line between the main column groups (.grp-l / .grp-r) */
     separator: string;
     headerBg: string;
+    /** Background of every second date */
+    altDateBg: string;
     text: string;
   };
-  /** Small and equal on every side, so the text is as large as possible in its box */
-  cellPadding: string;
+  /** px. Small and equal on every side, so the text is as large as possible in its box; doubled next to a separator line */
+  cellPadding: number;
   lineHeight: number;
   /** Width in px of the main column group separator lines */
   separatorWidth: number;

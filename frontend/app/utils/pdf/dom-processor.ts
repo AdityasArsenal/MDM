@@ -5,7 +5,14 @@
  */
 
 import { PDFMeasure, PDFRange, PDFSpan } from './types';
-import { PDFStyleManager, CONTAINER_CLASS, KANNADA_CLASS, SECONDARY_TABLE_CLASS, TITLE_CLASS } from './styles';
+import {
+  PDFStyleManager,
+  ALT_DATE_CLASS,
+  CONTAINER_CLASS,
+  KANNADA_CLASS,
+  SECONDARY_TABLE_CLASS,
+  TITLE_CLASS,
+} from './styles';
 
 const IGNORE_SELECTOR = '[data-pdf-ignore]';
 const SELECTED_BUTTON_SELECTOR =
@@ -224,8 +231,8 @@ export class DOMProcessor {
   private static sizeColumns(container: HTMLElement, main: HTMLTableElement): void {
     const sample = main.tBodies[0]?.rows[0]?.cells[0] ?? main.rows[0]?.cells[0];
     if (!sample) return;
-    const extra = cellExtra(sample);
-    const digits = (n: number) => textWidth(container, sample, '0'.repeat(n)) + extra;
+    // Padding differs per cell (doubled next to a separator line), so it is added per cell below
+    const digits = (n: number) => textWidth(container, sample, '0'.repeat(n));
     const thead = main.tHead;
     const headerRows = thead ? thead.rows.length : 0;
 
@@ -240,8 +247,23 @@ export class DOMProcessor {
 
     grid.forEach((g) => {
       if (g.cell.colSpan !== 1) return;
-      if (g.col === 0) raiseMinWidth(g.cell, digits(2));
-      if (threeDigitCols.has(g.col)) raiseMinWidth(g.cell, digits(3));
+      if (g.col === 0) raiseMinWidth(g.cell, digits(2) + cellExtra(g.cell));
+      if (threeDigitCols.has(g.col)) raiseMinWidth(g.cell, digits(3) + cellExtra(g.cell));
+    });
+  }
+
+  /**
+   * Shade every second date. A date starts at each body row with a cell in the first column and
+   * includes the rows that cell spans (meal and stock have two rows per date).
+   */
+  private static shadeAlternateDates(main: HTMLTableElement): void {
+    const firstBodyRow = main.tHead ? main.tHead.rows.length : 0;
+    const bodyRows = Array.from(main.tBodies).reduce((sum, body) => sum + body.rows.length, 0);
+    const body = buildGrid(main).filter((g) => g.row >= firstBodyRow && g.row < firstBodyRow + bodyRows);
+    const dateRows = body.filter((g) => g.col === 0).map((g) => g.row);
+    body.forEach((g) => {
+      const dateIndex = dateRows.filter((row) => row <= g.row).length - 1;
+      if (dateIndex % 2 === 1) g.cell.classList.add(ALT_DATE_CLASS);
     });
   }
 
@@ -366,7 +388,10 @@ export class DOMProcessor {
     const main = this.findMainTable(container);
     if (main) this.shortenHeaders(main);
     this.markText(container);
-    if (main) this.sizeColumns(container, main);
+    if (main) {
+      this.shadeAlternateDates(main);
+      this.sizeColumns(container, main);
+    }
     this.fitHeaders(container);
 
     return this.measure(container, main);
