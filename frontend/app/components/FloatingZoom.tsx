@@ -58,7 +58,7 @@ export function FloatingZoom({ zoom, setZoom }: FloatingZoomProps) {
   return (
     <div
       ref={rootRef}
-      className="fixed bottom-[46px] left-1.5 z-40 h-8 w-8"
+      className="fixed bottom-14 left-1.5 z-40 h-8 w-8"
       data-pdf-ignore
     >
       {open && (
