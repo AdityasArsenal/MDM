@@ -23,8 +23,11 @@ import {
 } from './utils';
 import MilkTableRow from './MilkTableRow';
 import { RatesEditor } from './RatesEditor';
-import { RatesToast } from './RatesToast';
 import { authFetch } from '../utils/api';
+import { FloatingZoom } from '@/app/components/FloatingZoom';
+import { TableToolbar } from '@/app/components/TableToolbar';
+import { useToast } from '@/app/components/Toast';
+import { useUnsavedGuard } from '@/app/hooks/useUnsavedGuard';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -48,13 +51,17 @@ export default function Milk() {
   const [zoom, setZoom] = useState(1);
   const [ratesInfo, setRatesInfo] = useState<RatesResponse | null>(null);
   const [ratesLoading, setRatesLoading] = useState(false);
-  const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
-  const showToast = useCallback((text: string) => setToast({ id: Date.now(), text }), []);
-  const clearToast = useCallback(() => setToast(null), []);
+  const { toast, showToast } = useToast();
   const [editorOpen, setEditorOpen] = useState(false);
   const [ratesSaving, setRatesSaving] = useState(false);
+  // True while the user has typed entries that are not saved yet. Only user edits set it;
+  // loading data and the automatic opening-stock recompute never do.
+  const [dirty, setDirty] = useState(false);
+  useUnsavedGuard(dirty, () => showToast('Please save the work'));
 
   const rates: MilkRates | null = ratesInfo?.rates ?? null;
+  const rowsRef = useRef<MilkRow[]>([]);
+  rowsRef.current = rows;
   // Latest rates for code that runs outside a render (the data loader)
   const ratesRef = useRef<MilkRates | null>(null);
   ratesRef.current = rates;
@@ -159,6 +166,7 @@ export default function Milk() {
       // rates are not loaded yet, the effect below redoes this when they arrive.
       setRows(ratesRef.current ? recalculateOpeningStock(allDays, ratesRef.current, 1) : allDays);
       setRowsVersion(v => v + 1);
+      setDirty(false);
     } catch (err) {
       console.error('Load error:', err);
       alert('Error loading data: ' + (err as Error).message);
@@ -176,7 +184,6 @@ export default function Milk() {
     if (!userId) return;
     let cancelled = false;
     setRatesInfo(null);
-    setToast(null);
     setRatesLoading(true);
     (async () => {
       try {
@@ -236,6 +243,9 @@ export default function Milk() {
   };
 
   const handleChange = useCallback((id: number, field: keyof MilkRow, value: MilkRow[keyof MilkRow]) => {
+    // A refused edit (children taken from Meal) is not a change
+    if (field === 'children' && rowsRef.current.find(r => r.id === id)?.from_meal) return;
+    setDirty(true);
     setRows(prev => {
       const idx = prev.findIndex(r => r.id === id);
       if (idx === -1) return prev;
@@ -321,7 +331,8 @@ export default function Milk() {
         throw new Error(responseData?.error || `Failed to save (${res.status})`);
       }
 
-      alert('Saved!');
+      setDirty(false);
+      showToast('Done');
     } catch (err) {
       console.error('Save error:', err);
       alert('Error saving: ' + (err as Error).message);
@@ -335,13 +346,22 @@ export default function Milk() {
   // Entries are locked until this month has usable rates
   const ratesLocked = ratesLoading || !ratesInfo || ratesInfo.source === 'none';
 
+  // Month/year can only change when nothing is waiting to be saved
+  const guardedChange = (apply: () => void) => {
+    if (dirty) {
+      showToast('Please save the work');
+      return;
+    }
+    apply();
+  };
+
   const handleExportPDF = () => {
     const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
     const fileName = `Milk_Ragi_${monthName}_${year}.pdf`;
     exportToPDF(
       printRef,
       fileName,
-      () => alert('PDF exported successfully!'),
+      () => showToast('Done'),
       (error) => alert('Export failed: ' + error)
     );
   };
@@ -350,15 +370,8 @@ export default function Milk() {
     <div className="min-h-screen bg-gray-50 p-2">
       <div className="max-w-full mx-auto">
         <div className="bg-white rounded-lg shadow p-4 mb-4">
-          <Button
-            onClick={() => router.push('/dashboard')}
-            variant="outline"
-            className="mb-4 w-full text-black"
-          >
-            ← Back to Dashboard
-          </Button>
           <div className="flex gap-2 mb-4">
-            <select value={month} onChange={e => setMonth(Number(e.target.value))}
+            <select value={month} onChange={e => guardedChange(() => setMonth(Number(e.target.value)))}
               className="flex-1 p-2 border rounded text-sm text-black">
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i + 1} value={i + 1}>
@@ -366,7 +379,7 @@ export default function Milk() {
                 </option>
               ))}
             </select>
-            <select value={year} onChange={e => setYear(Number(e.target.value))}
+            <select value={year} onChange={e => guardedChange(() => setYear(Number(e.target.value)))}
               className="p-2 border rounded text-sm text-black">
               {Array.from({ length: 5 }, (_, i) => (
                 <option key={i} value={new Date().getFullYear() - 2 + i}>
@@ -377,10 +390,7 @@ export default function Milk() {
           </div>
           <div className="flex gap-2">
             <Button onClick={saveData} disabled={saving || loading || ratesLocked} className="flex-1">
-              {saving ? 'Saving...' : 'Save All'}
-            </Button>
-            <Button onClick={handleExportPDF} disabled={loading || ratesLocked} className="flex-1">
-              Download PDF
+              {saving ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </div>
@@ -390,19 +400,6 @@ export default function Milk() {
             Rates are not set yet. Enter the rates to start.
           </div>
         )}
-
-        {/* Outside printRef so the PDF export does not capture the rates controls */}
-        <div className="flex justify-end items-center gap-2 mb-2">
-          <Button
-            onClick={() => setEditorOpen(true)}
-            disabled={!ratesInfo}
-            className="bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            Edit Rates
-          </Button>
-          <Button onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}>-</Button>
-          <Button onClick={() => setZoom(z => Math.min(2, z + 0.1))}>+</Button>
-        </div>
 
         {loading || ratesLoading ? (
           <div className="text-center p-8">Loading...</div>
@@ -419,7 +416,21 @@ export default function Milk() {
               <TableHeader>
                 <TableRow>
                   <TableCell colSpan={14} className="text-center text-lg font-semibold">
-                    {new Date(year, month - 1).toLocaleString('default', { month: 'long' })} {year} - Milk & Ragi
+                    {/* Toolbar sits in the left corner; the title stays centered across the row.
+                        The toolbar carries data-pdf-ignore, so it is left out of the PDF. */}
+                    <div className="relative flex min-h-[2.5rem] items-center justify-center">
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2">
+                        <TableToolbar
+                          onEditRates={() => setEditorOpen(true)}
+                          editDisabled={!ratesInfo}
+                          onDownload={handleExportPDF}
+                          downloadDisabled={loading || ratesLocked}
+                        />
+                      </div>
+                      <span>
+                        {new Date(year, month - 1).toLocaleString('default', { month: 'long' })} {year} - Milk & Ragi
+                      </span>
+                    </div>
                   </TableCell>
                 </TableRow>
                 <TableRow>
@@ -476,7 +487,8 @@ export default function Milk() {
           </div>
         )}
       </div>
-      {toast && <RatesToast key={toast.id} text={toast.text} onDone={clearToast} />}
+      {toast}
+      <FloatingZoom zoom={zoom} setZoom={setZoom} />
       {editorOpen && ratesInfo && (
         <RatesEditor
           key={`${year}-${month}-${ratesInfo.source}`}
