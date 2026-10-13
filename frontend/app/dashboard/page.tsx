@@ -3,16 +3,16 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { SheetSelector } from '@/app/components/SheetSelector';
-import { MonthYearPicker } from '@/app/components/MonthYearPicker';
-import { Button } from '@/app/components/ui/button';
+import { MonthYearPicker, MONTHS } from '@/app/components/MonthYearPicker';
 import { AppHeader } from '@/app/components/AppHeader';
 import { authFetch } from '@/app/utils/api';
+import { SheetCard, type SheetName } from './SheetCard';
 
-const sheets = [
+const sheets: { name: SheetName; displayName: string; path: string }[] = [
+  { name: 'egg', displayName: 'ಮೊಟ್ಟೆ ಮತ್ತು ಬಾಳೆ ನಿರ್ವಹಣಾ ವಹಿ (Egg & Banana)', path: '/egg' },
   { name: 'meals', displayName: 'MDM ದೈನಂದಿನ ದಾಸ್ತಾನು ನಿರ್ವಹಣಾ ವಹಿ (Meal Planning)', path: '/meals' },
   { name: 'milk', displayName: 'ಹಾಲು ಮತ್ತು ರಾಗಿ ಮಾಲ್ಟ್ ನಿರ್ವಹಣಾ ವಹಿ (Milk & Ragi)', path: '/milk' },
   { name: 'stock', displayName: 'ದಿನಸಿ ನಿರ್ವಹಣಾ ವಹಿ (Stock Management)', path: '/stock' },
-  { name: 'egg', displayName: 'ಮೊಟ್ಟೆ ಮತ್ತು ಬಾಳೆ ನಿರ್ವಹಣಾ ವಹಿ (Egg & Banana)', path: '/egg' },
 ];
 
 export default function Dashboard() {
@@ -56,133 +56,105 @@ export default function Dashboard() {
       });
   }, [router]);
 
-  const handleNavigate = () => {
-    if (!selectedSheet) {
-      alert('Please select a sheet');
-      return;
-    }
-
-    const sheet = sheets.find(s => s.name === selectedSheet);
-    if (sheet) {
-      // Store selected month/year in localStorage for the target page to use
-      localStorage.setItem('selectedMonth', month.toString());
-      localStorage.setItem('selectedYear', year.toString());
-      router.push(sheet.path);
-    }
+  const openSheet = (path: string) => {
+    // Store selected month/year in localStorage for the target page to use
+    localStorage.setItem('selectedMonth', month.toString());
+    localStorage.setItem('selectedYear', year.toString());
+    router.push(path);
   };
 
+  const handleNavigate = () => {
+    const sheet = sheets.find(s => s.name === selectedSheet);
+    if (sheet) openSheet(sheet.path);
+  };
+
+  const period = `${MONTHS[month - 1]} ${year}`;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <AppHeader 
-        title="MDM Management System" 
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 pb-[env(safe-area-inset-bottom)]">
+      <AppHeader
+        title="MDM Management System"
         subtitle={`Welcome, ${userName}`}
         showBackButton={false}
         userName={userName}
       />
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2 text-gray-800">Control Panel</h2>
-            <p className="text-gray-600">Select a sheet and date range to view and edit your data.</p>
-          </div>
+      <main className="mx-auto w-full max-w-2xl px-4 pb-8 pt-2">
+        <div className="rounded-xl bg-white p-4 shadow-lg sm:p-6">
+          <h2 className="text-xl font-semibold text-gray-800">Choose a sheet</h2>
+          <p className="mb-4 mt-1 text-base text-gray-600">Pick the month, then tap a sheet to open it.</p>
 
-          <div className="space-y-6">
-            {/* Sheet Selector */}
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">
-                Select Sheet
-              </label>
-              <SheetSelector
-                sheets={sheets}
-                value={selectedSheet}
-                onValueChange={setSelectedSheet}
-              />
-            </div>
+          {/* Period picker */}
+          <MonthYearPicker
+            selectedMonth={month}
+            selectedYear={year}
+            onMonthChange={setMonth}
+            onYearChange={setYear}
+          />
 
-            {/* Month/Year Picker */}
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">
-                Select Period
-              </label>
-              <MonthYearPicker
-                selectedMonth={month}
-                selectedYear={year}
-                onMonthChange={setMonth}
-                onYearChange={setYear}
-              />
-            </div>
-
-            {/* Navigate Button */}
-            <Button
-              onClick={handleNavigate}
-              disabled={!selectedSheet}
-              className="w-full py-6 text-lg"
-            >
-              Open Selected Sheet
-            </Button>
-          </div>
-
-          {/* Quick Access Cards */}
-          <div className="mt-8 pt-8 border-t">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">Quick Access</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {sheets.map((sheet) => (
-                <button
-                  key={sheet.name}
-                  onClick={() => {
-                    setSelectedSheet(sheet.name);
-                    localStorage.setItem('selectedMonth', month.toString());
-                    localStorage.setItem('selectedYear', year.toString());
-                    router.push(sheet.path);
-                  }}
-                  className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
-                >
-                  <div className="font-medium text-gray-800 text-sm">
-                    {sheet.displayName}
-                  </div>
-                </button>
+          {/* Quick Access cards: one tap opens the sheet */}
+          <nav aria-label="Sheets" className="mt-5">
+            <ul className="space-y-3">
+              {sheets.map(sheet => (
+                <li key={sheet.name}>
+                  <SheetCard
+                    name={sheet.name}
+                    displayName={sheet.displayName}
+                    period={period}
+                    onOpen={() => openSheet(sheet.path)}
+                  />
+                </li>
               ))}
+            </ul>
+          </nav>
+
+          {/* Dropdown flow (secondary) */}
+          <details className="mt-5 border-t pt-4">
+            <summary className="flex min-h-[44px] cursor-pointer items-center text-base font-medium text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+              Or choose from a list
+            </summary>
+            <div className="mt-3 space-y-4">
+              <SheetSelector sheets={sheets} value={selectedSheet} onValueChange={setSelectedSheet} />
+              <button
+                type="button"
+                onClick={handleNavigate}
+                disabled={!selectedSheet}
+                className="min-h-[48px] w-full rounded-lg bg-blue-600 px-4 text-lg font-medium text-white active:bg-blue-800 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+              >
+                Open Selected Sheet
+              </button>
             </div>
-          </div>
+          </details>
         </div>
 
         {/* Info Card */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-semibold text-blue-900 mb-2">📋 Quick Instructions</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Select a sheet type from the dropdown</li>
-            <li>• Choose the month and year you want to work with</li>
-            <li>• Click &quot;Open Selected Sheet&quot; or use Quick Access cards</li>
-            <li>• Remember to save your changes before switching sheets</li>
+        <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <h3 className="mb-2 text-base font-semibold text-blue-900">Quick Instructions</h3>
+          <ul className="list-disc space-y-1 pl-5 text-base text-blue-900">
+            <li>Choose the month and year you want to work with</li>
+            <li>Tap a sheet card to open it</li>
+            <li>Remember to save your changes before switching sheets</li>
           </ul>
         </div>
 
         {/* Footer Links */}
-        <div className="mt-6 flex flex-wrap gap-4 justify-center text-sm">
-          <button 
-            onClick={() => router.push('/instructions')}
-            className="text-blue-600 hover:underline"
-          >
-            How to Use This App
-          </button>
-          <span className="text-gray-400">|</span>
-          <button 
-            onClick={() => router.push('/privacy')}
-            className="text-blue-600 hover:underline"
-          >
-            Privacy Policy
-          </button>
-          <span className="text-gray-400">|</span>
-          <button 
-            onClick={() => router.push('/terms')}
-            className="text-blue-600 hover:underline"
-          >
-            Terms & Refund Policy
-          </button>
+        <div className="mt-4 flex flex-col items-stretch gap-1 text-center text-base min-[420px]:flex-row min-[420px]:flex-wrap min-[420px]:justify-center">
+          {[
+            ['/instructions', 'How to Use This App'],
+            ['/privacy', 'Privacy Policy'],
+            ['/terms', 'Terms & Refund Policy'],
+          ].map(([href, label]) => (
+            <button
+              key={href}
+              type="button"
+              onClick={() => router.push(href)}
+              className="min-h-[44px] px-3 text-blue-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            >
+              {label}
+            </button>
+          ))}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

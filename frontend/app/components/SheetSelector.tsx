@@ -9,6 +9,7 @@ interface SheetSelectorProps {
 }
 
 export function SheetSelector({ sheets, value, onValueChange }: SheetSelectorProps) {
+  const id = React.useId();
   const [hasBeenClicked, setHasBeenClicked] = React.useState(true);
 
   React.useEffect(() => {
@@ -17,7 +18,7 @@ export function SheetSelector({ sheets, value, onValueChange }: SheetSelectorPro
     }
   }, []);
 
-  const handleClick = () => {
+  const handleInteract = () => {
     if (!hasBeenClicked) {
       localStorage.setItem('sheetSelectorClicked', 'true');
       setHasBeenClicked(true);
@@ -25,15 +26,25 @@ export function SheetSelector({ sheets, value, onValueChange }: SheetSelectorPro
   };
 
   return (
-    <div onClick={handleClick}>
+    <div>
+      <label htmlFor={id} className="mb-1 block text-base font-medium text-gray-700">
+        Select Sheet
+      </label>
       <select
+        id={id}
         value={value}
-        onChange={(e) => onValueChange(e.target.value)}
-        className={`w-full p-3 border rounded-lg text-base bg-white text-black ${!hasBeenClicked ? 'animate-pulse border-blue-500' : ''}`}
+        onChange={(e) => {
+          handleInteract();
+          onValueChange(e.target.value);
+        }}
+        onFocus={handleInteract}
+        className={`block h-12 w-full rounded-lg border bg-white px-3 text-base text-black focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+          !hasBeenClicked ? 'animate-pulse border-blue-500' : 'border-gray-300'
+        }`}
       >
-        <option value="" className="text-black">Select a sheet</option>
+        <option value="">Select a sheet</option>
         {sheets.map((sheet) => (
-          <option key={sheet.name} value={sheet.name} className="text-black">
+          <option key={sheet.name} value={sheet.name}>
             {sheet.displayName}
           </option>
         ))}
