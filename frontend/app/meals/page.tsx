@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation';
 import { exportToPDF } from '@/app/utils/pdf';
 import { authFetch } from '../utils/api';
 import { RatesEditor } from './RatesEditor';
-import { RatesToast } from './RatesToast';
+import { FloatingZoom } from '../components/FloatingZoom';
+import { TableToolbar } from '../components/TableToolbar';
+import { useToast } from '../components/Toast';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 import {
   Table,
   TableBody,
@@ -210,9 +213,10 @@ export default function Meals() {
   // Rows (by id) that were blocked on save for a missing choice
   const [ratesInfo, setRatesInfo] = useState<RatesResponse | null>(null);
   const [ratesLoading, setRatesLoading] = useState(false);
-  const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
-  const showToast = useCallback((text: string) => setToast({ id: Date.now(), text }), []);
-  const clearToast = useCallback(() => setToast(null), []);
+  const { toast, showToast } = useToast();
+  // True when entries were changed and not saved yet (rates editor saves do not touch it)
+  const [dirty, setDirty] = useState(false);
+  useUnsavedGuard(dirty, () => showToast('Please save the work'));
   const [editorOpen, setEditorOpen] = useState(false);
   const [ratesSaving, setRatesSaving] = useState(false);
   const [blockedIds, setBlockedIds] = useState<Set<number>>(new Set());
@@ -271,6 +275,7 @@ export default function Meals() {
       }
       
       setMeals(allDays);
+      setDirty(false);
     } catch (err) {
       alert('Error loading data: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
@@ -287,7 +292,6 @@ export default function Meals() {
     if (!userId) return;
     let cancelled = false;
     setRatesInfo(null);
-    setToast(null);
     setRatesLoading(true);
     (async () => {
       try {
@@ -387,7 +391,8 @@ export default function Meals() {
         throw new Error(responseData.error || 'Failed to save');
       }
       
-      alert('Saved successfully!');
+      setDirty(false);
+      showToast('Done');
     } catch (err) {
       console.error('Save error:', err);
       alert('Error saving: ' + (err instanceof Error ? err.message : String(err)));
@@ -400,15 +405,27 @@ export default function Meals() {
 
   const handleInputChange = useCallback((id: number, field: 'cnt_1to5' | 'cnt_6to10', value: number) => {
     setMeals(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
+    setDirty(true);
   }, []);
 
   const handleMealTypeChange = useCallback((id: number, mealType: MealType) => {
     setMeals(prev => prev.map(m => m.id === id ? { ...m, meal_type: mealType } : m));
+    setDirty(true);
   }, []);
 
   const handlePulsesToggle = useCallback((id: number, include: boolean) => {
     setMeals(prev => prev.map(m => m.id === id ? { ...m, has_pulses: include } : m));
+    setDirty(true);
   }, []);
+
+  // Month/year can only change when there is no unsaved work
+  const guardedChange = (apply: () => void) => {
+    if (dirty) {
+      showToast('Please save the work');
+      return;
+    }
+    apply();
+  };
 
   const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
   // Entries are locked until this month has usable rates
@@ -419,7 +436,7 @@ export default function Meals() {
     exportToPDF(
       printRef,
       fileName,
-      () => alert('PDF exported successfully!'),
+      () => showToast('Done'),
       (error) => alert('Export failed: ' + error)
     );
   };
@@ -459,16 +476,8 @@ export default function Meals() {
     <div className="min-h-screen bg-gray-50 p-2">
       <div className="max-w-full mx-auto">
         <div className="bg-white rounded-lg shadow p-4 mb-4">
-          <Button 
-            onClick={() => router.push('/dashboard')} 
-            variant="outline" 
-            className="mb-4 w-full text-black"
-          >
-            ← Back to Dashboard
-          </Button>
-          
           <div className="flex gap-2 mb-4">
-            <select value={month} onChange={e => setMonth(Number(e.target.value))} 
+            <select value={month} onChange={e => guardedChange(() => setMonth(Number(e.target.value)))} 
               className="flex-1 p-2 border rounded text-sm text-black">
               {Array.from({ length: 12 }, (_, i) => (
                 <option key={i + 1} value={i + 1}>
@@ -476,7 +485,7 @@ export default function Meals() {
                 </option>
               ))}
             </select>
-            <select value={year} onChange={e => setYear(Number(e.target.value))} 
+            <select value={year} onChange={e => guardedChange(() => setYear(Number(e.target.value)))} 
               className="p-2 border rounded text-sm text-black">
               {Array.from({ length: 5 }, (_, i) => (
                 <option key={i} value={new Date().getFullYear() - 2 + i}>
@@ -488,10 +497,7 @@ export default function Meals() {
 
           <div className="flex gap-2">
             <Button onClick={saveData} disabled={saving || loading || ratesLocked} className="flex-1">
-              {saving ? 'Saving...' : 'Save All'}
-            </Button>
-            <Button onClick={handleExportPDF} disabled={loading || ratesLocked} className="flex-1">
-              Download PDF
+              {saving ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </div>
@@ -501,19 +507,6 @@ export default function Meals() {
             Rates are not set yet. Enter the rates to start.
           </div>
         )}
-
-        {/* Outside printRef so the PDF export does not capture the rates controls */}
-        <div className="flex justify-end items-center gap-2 mb-2">
-          <Button
-            onClick={() => setEditorOpen(true)}
-            disabled={!ratesInfo}
-            className="bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            Edit Rates
-          </Button>
-          <Button onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}>-</Button>
-          <Button onClick={() => setZoom(z => Math.min(2, z + 0.1))}>+</Button>
-        </div>
 
         {loading || ratesLoading ? (
           <div className="text-center p-8">Loading...</div>
@@ -529,8 +522,16 @@ export default function Meals() {
               <Table>
               <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={12} className="text-center">
-                    <div className="text-lg font-semibold text-black">
+                  <TableCell colSpan={12} className="relative text-center">
+                    <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                      <TableToolbar
+                        onEditRates={() => setEditorOpen(true)}
+                        editDisabled={!ratesInfo}
+                        onDownload={handleExportPDF}
+                        downloadDisabled={loading || ratesLocked}
+                      />
+                    </div>
+                    <div className="flex h-9 items-center justify-center text-lg font-semibold text-black">
                       {monthName} {year} - Meal Planning Schedule
                     </div>
                   </TableCell>
@@ -592,7 +593,8 @@ export default function Meals() {
         </div>
         )}
       </div>
-      {toast && <RatesToast key={toast.id} text={toast.text} onDone={clearToast} />}
+      {toast}
+      <FloatingZoom zoom={zoom} setZoom={setZoom} />
       {editorOpen && ratesInfo && (
         <RatesEditor
           key={`${year}-${month}-${ratesInfo.source}`}
