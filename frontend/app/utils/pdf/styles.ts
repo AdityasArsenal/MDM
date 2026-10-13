@@ -15,6 +15,8 @@ export const SECONDARY_TABLE_CLASS = 'pdf-secondary-table';
 export const KANNADA_CLASS = 'pdf-kn';
 /** Marks the cell of the table title row (month - table name) */
 export const TITLE_CLASS = 'pdf-title';
+/** Marks the body cells of every second date, which get a light gray background */
+export const ALT_DATE_CLASS = 'pdf-alt';
 const STYLE_ID = 'pdf-export-styles';
 
 const DEFAULT_CONFIG: PDFStyleConfig = {
@@ -28,10 +30,11 @@ const DEFAULT_CONFIG: PDFStyleConfig = {
   colors: {
     border: '#000',
     separator: '#6b7280',
-    headerBg: '#f5f5f5',
+    headerBg: '#d9d9d9',
+    altDateBg: '#eeeeee',
     text: '#000',
   },
-  cellPadding: '1.4px',
+  cellPadding: 1.4,
   lineHeight: 1.15,
   separatorWidth: 3,
 };
@@ -150,7 +153,7 @@ export class PDFStyleManager {
       ${C} th,
       ${C} td {
         border: 1px solid ${colors.border} !important;
-        padding: ${cellPadding} !important;
+        padding: ${cellPadding}px !important;
         text-align: center !important;
         vertical-align: middle !important;
         font-size: ${fontSize.body}px !important;
@@ -185,6 +188,11 @@ export class PDFStyleManager {
         background: ${colors.headerBg} !important;
       }
 
+      /* Every second date is shaded so a line of numbers is easier to follow */
+      ${C} td.${ALT_DATE_CLASS} {
+        background: ${colors.altDateBg} !important;
+      }
+
       /* Kannada glyphs look smaller than Latin ones at the same size */
       ${C} th.${KANNADA_CLASS} {
         font-size: ${fontSize.headerKannada}px !important;
@@ -206,12 +214,15 @@ export class PDFStyleManager {
         padding: 4px !important;
       }
 
-      /* Main column group separators. Higher specificity than the th/td border above. */
+      /* Main column group separators. Higher specificity than the th/td border above.
+         The padding next to the thick line is doubled so the text does not sit against it. */
       ${C} .grp-l {
         border-left: ${separatorWidth}px solid ${colors.separator} !important;
+        padding-left: ${cellPadding * 2}px !important;
       }
       ${C} .grp-r {
         border-right: ${separatorWidth}px solid ${colors.separator} !important;
+        padding-right: ${cellPadding * 2}px !important;
       }
 
       /* No line between two neighbouring cells (date/class, date/payer) */
