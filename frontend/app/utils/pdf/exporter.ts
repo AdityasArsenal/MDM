@@ -8,6 +8,7 @@ import { PDFExportOptions, PDFExportCallbacks } from './types';
 import { PDFStyleManager } from './styles';
 import { CanvasRenderer } from './canvas-renderer';
 import { DOMProcessor } from './dom-processor';
+import { DEFAULT_MARGIN_MM } from './fit';
 import { PDFGenerator } from './pdf-generator';
 
 export class PDFExporter {
@@ -19,8 +20,8 @@ export class PDFExporter {
 
   /**
    * Export HTML element to PDF.
-   * The live page is never modified: styles, the 100% zoom, input/button replacement and row
-   * measuring all happen in the html2canvas clone.
+   * The live page is never modified: styles, the 100% zoom, input/button replacement, the choice
+   * of render width and orientation all happen in the html2canvas clone.
    */
   async export(
     elementRef: RefObject<HTMLElement | null>,
@@ -35,28 +36,26 @@ export class PDFExporter {
     }
 
     try {
+      const format = options.format || 'a4';
+      const margin = options.margin ?? DEFAULT_MARGIN_MM;
+
       callbacks.onProgress?.(10);
       // Input values must be read from the live page (html2canvas only copies attributes)
       const inputs = DOMProcessor.collectInputs(element);
 
       callbacks.onProgress?.(30);
-      const { canvas, layout } = await CanvasRenderer.render(element, {
-        scale: options.scale || 2,
-        minWidth: options.minRenderWidth,
+      const { canvas, measure, plan } = await CanvasRenderer.render(element, {
+        format,
+        margin,
+        orientation: options.orientation,
+        scale: options.scale,
         styles: this.styleManager,
         inputs,
       });
 
-      callbacks.onProgress?.(70);
-      const pdfGenerator = new PDFGenerator({
-        orientation: options.orientation,
-        format: options.format,
-        margin: options.margin,
-        quality: options.quality,
-      });
-
-      callbacks.onProgress?.(85);
-      pdfGenerator.addCanvas(canvas, layout);
+      callbacks.onProgress?.(80);
+      const pdfGenerator = new PDFGenerator(plan, { format, margin });
+      pdfGenerator.addCanvas(canvas, measure, plan);
       pdfGenerator.save(options.fileName);
 
       callbacks.onProgress?.(100);
