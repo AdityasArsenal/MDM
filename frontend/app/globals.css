@@ -73,4 +73,8 @@ button.bg-red-500 {
 .mdm-table .grp-r { border-right: 3px solid #6b7280; }
 .mdm-table .merge-r { border-right-style: none; }
 .mdm-table .merge-l { border-left-style: none; }
-.mdm-table th.kn-center { text-align: center; }
+/* Group titles (cells that span several sub columns) and any header marked text-center are
+   always centered. The base header cell is text-left, so this must win over it. */
+.mdm-table th[colspan],
+.mdm-table th.text-center { text-align: center; }
+.mdm-table td.text-center { text-align: center; }
