@@ -30,8 +30,8 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, payerMissing, onC
 
   return (
     <TableRow>
-      <TableCell className="text-xs">{new Date(row.date).getDate()}</TableCell>
-      <TableCell>
+      <TableCell className="text-xs merge-r">{new Date(row.date).getDate()}</TableCell>
+      <TableCell className="merge-l">
         <div className={`flex flex-col gap-1 rounded ${payerMissing ? 'ring-2 ring-red-500 p-0.5' : ''}`}>
           <button
             onClick={() => onChange(index, 'payer', 'APF')}
@@ -53,7 +53,7 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, payerMissing, onC
           </button>
         </div>
       </TableCell>
-      <TableCell>
+      <TableCell className="grp-l">
         <Input 
           type="number" 
           min={0}
@@ -76,8 +76,8 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, payerMissing, onC
         />
       </TableCell>
       <TableCell className="text-xs text-center">{eggTotal}</TableCell>
-      <TableCell className="text-xs text-center">₹{eggMoney}</TableCell>
-      <TableCell>
+      <TableCell className="text-xs text-center grp-r">₹{eggMoney}</TableCell>
+      <TableCell className="grp-l">
         <Input 
           type="number" 
           min={0}
@@ -100,11 +100,11 @@ const EggTableRow = memo(({ row, index, eggPrice, bananaPrice, payerMissing, onC
         />
       </TableCell>
       <TableCell className="text-xs text-center">{bananaTotal}</TableCell>
-      <TableCell className="text-xs text-center">₹{bananaMoney}</TableCell>
-      <TableCell className="text-xs text-center font-bold">{eggTotal}</TableCell>
+      <TableCell className="text-xs text-center grp-r">₹{bananaMoney}</TableCell>
+      <TableCell className="text-xs text-center font-bold grp-l">{eggTotal}</TableCell>
       <TableCell className="text-xs text-center font-bold">{bananaTotal}</TableCell>
-      <TableCell className="text-xs text-center font-bold">{grandTotal}</TableCell>
-      <TableCell className="text-xs font-bold">₹{totalMoney}</TableCell>
+      <TableCell className="text-xs text-center font-bold grp-r">{grandTotal}</TableCell>
+      <TableCell className="text-xs text-center font-bold grp-l grp-r">₹{totalMoney}</TableCell>
     </TableRow>
   );
 });
