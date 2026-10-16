@@ -605,3 +605,17 @@ def expire_old_subscriptions():
     except Exception as e:
         logger.error(f"Error expiring subscriptions: {e}")
         raise e
+
+
+# ---------------------------------------------------------------------------
+# App settings (table app_settings: key text primary key, value text, updated_at)
+# ---------------------------------------------------------------------------
+
+def get_app_setting(key):
+    """Get an app setting's value string, or None if the row is missing or its value is null"""
+    try:
+        result = supabase.table("app_settings").select("value").eq("key", key).limit(1).execute()
+        return result.data[0]["value"] if result.data else None
+    except Exception as e:
+        logger.error(f"Error getting app setting {key}: {e}")
+        raise e

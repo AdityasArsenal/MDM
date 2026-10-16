@@ -5,6 +5,7 @@ from auth_session import login_required
 from db import get_subscription_by_user_id, get_subscription_history, check_active_subscription, expire_old_subscriptions
 from datetime import datetime
 import logging
+import free_access
 from routes.pay import reconcile_pending_payments
 
 sub_bp = Blueprint('sub', __name__)
@@ -89,6 +90,15 @@ def check_subscription():
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
     
+    try:
+        info = free_access.free_info()
+    except Exception as e:
+        logger.error(f"Free access check failed: {type(e).__name__}")
+        return jsonify({'error': 'Could not verify subscription'}), 503
+
+    if info['free_access']:
+        return jsonify({'has_active_subscription': True, **info})
+
     # A user who paid and closed the browser never reached /api/pay/status, so
     # re-check their recent unfinished payments first. Must never break this route.
     try:
@@ -99,7 +109,8 @@ def check_subscription():
     has_active = check_active_subscription(user_id)
     
     return jsonify({
-        'has_active_subscription': has_active
+        'has_active_subscription': has_active,
+        **info
     })
 
 @sub_bp.route('/expire', methods=['POST'])
