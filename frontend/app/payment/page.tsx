@@ -25,12 +25,24 @@ function formatPrice(price: number): string {
   return Number.isInteger(price) ? `₹${price}` : `₹${price.toFixed(2)}`;
 }
 
+// "2026-12-31" -> "31 December 2026". Parsed by hand so the timezone cannot shift the day.
+function formatFreeUntil(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return null;
+  const date = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
 export default function Payment() {
   const router = useRouter();
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('1_month');
   const [prices, setPrices] = useState<Record<PlanId, number> | null>(null);
   const [pricesLoading, setPricesLoading] = useState(true);
   const [pricesError, setPricesError] = useState(false);
+  const [freeAccess, setFreeAccess] = useState(false);
+  const [freeUntil, setFreeUntil] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -41,14 +53,23 @@ export default function Payment() {
       const res = await authFetch(`${BACKEND_URL}/api/pay/plans`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json().catch(() => null);
+
+      if (data?.free_access === true) {
+        setFreeAccess(true);
+        setFreeUntil(formatFreeUntil(data.free_until));
+        setPrices(null);
+        return;
+      }
+
       const next = {} as Record<PlanId, number>;
       for (const id of PLAN_IDS) {
-        const price = data?.[id]?.price;
+        const price = data?.plans?.[id]?.price;
         if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) {
           throw new Error('Invalid plans response');
         }
         next[id] = price;
       }
+      setFreeAccess(false);
       setPrices(next);
     } catch {
       setPrices(null);
@@ -84,6 +105,14 @@ export default function Payment() {
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
+        if (data?.code === 'free_period') {
+          // The free period started while this page was open. Reload to get the date.
+          setLoading(false);
+          setFreeAccess(true);
+          setPrices(null);
+          loadPrices();
+          return;
+        }
         const serverMsg = typeof data?.error === 'string' && data.error ? data.error : '';
         if (serverMsg) {
           setError(serverMsg);
@@ -109,6 +138,40 @@ export default function Payment() {
       setLoading(false);
     }
   };
+
+  if (freeAccess) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-white rounded-lg shadow-sm border p-6 text-center">
+          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">MDM is free for now</h2>
+          {freeUntil && (
+            <p className="text-base text-gray-700 mb-1">Free access until {freeUntil}</p>
+          )}
+          <p className="text-base text-gray-600 mb-6">No payment is needed.</p>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="w-full min-h-12 bg-blue-600 hover:bg-blue-700 text-white text-base font-medium py-3 px-4 rounded-lg transition-colors"
+          >
+            Go to dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // First load: show nothing payment-related until we know whether access is free.
+  if (pricesLoading && !prices && !pricesError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-base text-gray-600">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
