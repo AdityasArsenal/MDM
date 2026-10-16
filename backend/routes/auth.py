@@ -6,6 +6,7 @@ import uuid
 import os
 from db import get_user_by_google_id, insert_user, get_active_subscription
 from auth_session import issue_token
+import free_access
 
 from dotenv import load_dotenv
 
@@ -39,6 +40,13 @@ def login():
             client_id
         )
 
+        # Read the free-access setting before creating anything, so a failure has no side effects
+        try:
+            free = free_access.free_info()
+        except Exception as e:
+            logger.error(f"Free access check failed: {type(e).__name__}")
+            return jsonify({'error': 'Please try again'}), 503
+
         google_id = id_info['sub']
         email = id_info['email']
         name = id_info.get('name')
@@ -61,7 +69,9 @@ def login():
                 'id': str(user['id']),
                 'email': user['email'],
                 'name': user['name'],
-                'is_subscribed': bool(sub),
+                'is_subscribed': bool(sub) or free['free_access'],
+                'free_access': free['free_access'],
+                'free_until': free['free_until'],
                 'subscription_end': sub['end_date'] if sub else None
             }
         })

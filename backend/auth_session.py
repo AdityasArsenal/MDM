@@ -21,6 +21,7 @@ import jwt
 from dotenv import load_dotenv
 from flask import g, jsonify, request
 
+import free_access
 from db import check_active_subscription
 
 load_dotenv()
@@ -88,7 +89,9 @@ def enforce_subscription():
     App-level before_request hook. The data routes (egg, meal, milk, stock) need a
     valid session AND an active subscription. Auth, pay and sub routes are not
     gated, so an unpaid user can still log in and pay.
-    Returns 402 when there is no active subscription, 503 when it cannot be checked.
+    While free access is on (see free_access.py) a logged-in user passes without a
+    subscription lookup. Returns 402 when there is no active subscription, 503 when
+    the subscription or the free-access setting cannot be read.
     """
     if not ENFORCE_SUBSCRIPTION or request.method == "OPTIONS":
         return None
@@ -98,6 +101,15 @@ def enforce_subscription():
     error = load_session_user()
     if error:
         return error
+
+    try:
+        free = free_access.is_free_now()
+    except Exception as e:
+        # Never treat a failed read as free, and never as unpaid
+        logger.error("Free access check failed: %s", type(e).__name__)
+        return jsonify({"error": "Could not verify subscription"}), 503
+    if free:
+        return None  # not added to the paid cache
 
     user_id = g.user_id
     now = time.monotonic()

@@ -27,6 +27,7 @@ ENVIRONMENT VARIABLES REQUIRED:
 """
 
 from flask import Blueprint, request, jsonify, redirect, g
+import free_access
 from auth_session import login_required
 from db import insert_payment, get_payment_by_order_id, update_payment_status, insert_subscription, get_subscription_by_payment_id, get_recent_pending_payment, get_pending_payments_for_user
 from uuid import uuid4
@@ -238,11 +239,18 @@ def reconcile_pending_payments(user_id):
 
 @pay_bp.route('/plans', methods=['GET'])
 def get_plans():
-    """Plan list and prices (in rupees) so the frontend does not hardcode them"""
-    return jsonify({
+    """Plan list and prices (in rupees) so the frontend does not hardcode them.
+    During free access no plans (and no prices) are returned."""
+    try:
+        info = free_access.free_info()
+    except Exception as e:
+        logger.error(f"Free access check failed: {type(e).__name__}")
+        return jsonify({"error": "Could not load plans"}), 503
+    plans = {} if info['free_access'] else {
         plan: {'price': price, 'months': 3 if plan == '3_month' else 1}
         for plan, price in PLAN_PRICES.items()
-    })
+    }
+    return jsonify({**info, 'plans': plans})
 
 @pay_bp.route('/create', methods=['POST'])
 @login_required
@@ -251,6 +259,19 @@ def create_payment():
     Create a new payment and redirect user to PhonePe
     Payment record is inserted BEFORE redirecting to ensure tracking
     """
+    # During free access no payment is accepted: answer before any database write or PhonePe call
+    try:
+        info = free_access.free_info()
+    except Exception as e:
+        logger.error(f"Free access check failed: {type(e).__name__}")
+        return jsonify({"error": "Could not verify subscription"}), 503
+    if info['free_access']:
+        until = free_access.format_date(datetime.strptime(info['free_until'], "%Y-%m-%d"))
+        return jsonify({
+            "error": f"MDM is free until {until}. No payment is needed.",
+            "code": "free_period"
+        }), 409
+
     try:
         client = get_client()
     except PaymentsNotConfigured as e:
